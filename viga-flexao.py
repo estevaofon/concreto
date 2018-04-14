@@ -4,16 +4,21 @@ import math
 bw = 15
 
 # Sem d inicial
-L = 6
+L = 6  # m
 h = 6/10
-d = 0.9*h
+d = 0.9*h*100
 # com d inicial
-d = 40
-cnom = 25
+# d = 40  # cm
+
+# espacamento -> mm
+cnom = 30
+dbrita = 25
+dt = 6.3  # diametro do estribo
+
 # M -> kN.m
-M = 50
+M = 58.4
 # fck -> MPa
-fck = 20
+fck = 25
 fy = 500
 fyd = fy/1.15
 
@@ -23,6 +28,9 @@ d = d*10**-2
 M = M*10**3  # N.m
 fck = fck*10**6  # Pa
 fyd = fyd*10**6
+cnom = cnom*10**-3
+dbrita = dbrita*10**-3
+dt = dt*10**-3
 
 # Calculos
 fcd = fck/1.4
@@ -88,12 +96,29 @@ def dominio(kx):
 
 def desbitolagem(As):
     As_cm = As * 10**4
-    n10 = As_cm/0.79
-    n12_5 = As_cm/1.23
-    n16 = As_cm/2.01
-    nbarras = (n10, n12_5, n16)
-    nbarras_ceil = [math.ceil(barra) for barra in nbarras]
-    return nbarras_ceil
+    nbarras = {}
+    nbarras['10'] = As_cm/0.79
+    nbarras['12.5'] = As_cm/1.23
+    nbarras['16'] = As_cm/2.01
+    for key, value in nbarras.items():
+        decimal = value - int(value)
+        if decimal <= 0.3:
+            nbarras[key] = math.floor(value)
+        else:
+            nbarras[key] = math.ceil(value)
+    # nbarras = {key: math.ceil(value) for (key, value) in nbarras.items()}
+    return nbarras
+
+
+def bwmin(dbitola, dt, dbrita, nbarras, cnom):
+    a = 20*10**-3
+    if 1.2*dbrita >= 20*10**-3:
+        a = 1.2*dbrita
+    if dbitola >= a:
+        a = dbitola
+    bs = nbarras*dbitola + (nbarras-1)*a
+    bwm = bs + 2*(dt + cnom)
+    return bwm
 
 
 kmd = kmd_calc(Msd, bw, d, fcd)
@@ -109,6 +134,25 @@ dminimo = dmin(Msd, bw, fcd)
 dminimo = dminimo*100
 dominio(kx)
 nbarras = desbitolagem(As)
+bitola = '12.5'
+bwm = bwmin(12.5*10**-3, dt, dbrita, nbarras[bitola], cnom)
+
+layers = 1
+barra_unica = 0
+print(nbarras)
+while bwm >= bw:
+    layers += 1
+    n = nbarras[bitola]/layers
+    if n < 2:
+        n = 2
+        barra_unica = 1
+    bwm = bwmin(12.5*10**-3, dt, dbrita, n, cnom)
+    print(f"novo bwmin {bwm}")
+    if barra_unica:
+        print(f"Ultima camada com uma barra só")
+    print(f"numero de barra por camada: {n}")
+    print(f"numero de camadas: {layers}")
+
 
 print(f"kmd: {kmd:.3f}")
 print("kx: {:.3f}".format(kx))
@@ -117,3 +161,5 @@ print("As: {:.3f} cm2".format(As_cm))
 print(f"x1:{x1_cm:.2f}; x2:{x2_cm:.2f}")
 print(f"dmin:{dminimo:.2f}")
 print(nbarras)
+print(bwm)
+print(bw)
