@@ -6,22 +6,23 @@ L = 6000
 h = L/(10)
 d = 0.9*h  
 # com d inicial
-d = 400 
+#d = 400 
 
 # espacamento -> mm
-cnom = 25
+cnom = 30
 dbrita = 25
-dt = 5  # diametro do estribo
-bitola = 10
+dt = 6.3  # diametro do estribo
+bitola = 12.5
 
 # Mk -> kN.m
-M = 50
+M = 58.4
 # fck -> MPa
-fck = 20
+fck = 25
 fy = 500
 fyd = fy/1.15
 
 # Conversoes
+h = h*10**-3  # metros
 bw = bw*10**-3  # metros
 d = d*10**-3
 M = M*10**3  # N.m
@@ -35,6 +36,7 @@ bitola = bitola*10**-3
 # Calculos
 fcd = fck/1.4
 Msd = 1.4*M
+d1_est = h-d
 
 
 def kmd_calc(Msd, bw, d, fcd):
@@ -107,12 +109,26 @@ def desbitolagem(As):
     return nbarras
 
 
+def ev(bitola, dbrita):
+    ev = 20 *10**-3
+    if bitola > ev:
+        ev = bitola
+    elif 0.5*dbrita > ev:
+        ev = 0.5*dbrita
+    return ev
+
+
+def eh(bitola, dbrita):
+    eh = 20 *10**-3
+    if bitola > eh:
+        eh = bitola
+    elif 1.2*dbrita > eh:
+        eh = 1.2*dbrita
+    return eh
+
+
 def bwmin(dbitola, dt, dbrita, nbarras, cnom):
-    a = 20*10**-3
-    if 1.2*dbrita >= 20*10**-3:
-        a = 1.2*dbrita
-    if dbitola >= a:
-        a = dbitola
+    a = eh(dbitola, dbrita)
     bs = nbarras*dbitola + (nbarras-1)*a
     bwm = bs + 2*(dt + cnom)
     return bwm
@@ -172,6 +188,32 @@ def distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom):
     return(camadas)
 
 
+def d1_real(cnom, dt, bitola, camadas):
+    a = ev(bitola, dbrita)
+    abitola = math.pi*(bitola/2)**2
+    soma = 0
+    for i, barras in enumerate(camadas):
+        soma += barras*abitola*((bitola/2)+a*i+bitola*i)
+    bitola_str = str(bitola*10**3)
+    yc = soma/(nbarras[bitola_str]*abitola)
+    d1 = cnom + dt + yc
+    return d1
+
+
+def d_real(d1, h):
+    return h-d1
+
+def d_test(d1_est, d1_real):
+    c = d1_real/d1_est
+    print(c)
+    if c <= 1.10:
+        print("d esta ok")
+        return 1
+    else:
+        print("Difereca maior que 1.10")
+        return 0
+
+
 kmd = kmd_calc(Msd, bw, d, fcd)
 sigmac, lambdac = sigma_lambda_calc(fck)
 kx = kx_calc(kmd, sigmac, lambdac)
@@ -186,6 +228,12 @@ dminimo = dminimo*100
 dom = dominio(kx)
 nbarras = desbitolagem(As)
 camadas = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
+d1 = d1_real(cnom, dt, bitola, camadas)
+d_r = d_real(d1, h)
+d_test(d1_est, d1)
+print(f"d1: {d1*100:.2f} cm")
+print(f"d1_est: {d1_est*100:.2f} cm")
+print(f"d_real: {d_r*100:.2f} cm")
 print(f"kmd: {kmd:.3f}")
 print("kx: {:.3f}".format(kx))
 print("kz: {:.3f}".format(kz))
@@ -196,3 +244,5 @@ print("As: {:.2f} cm2".format(As_cm))
 print(nbarras)
 print(f"Bitola:{str(bitola*10**3)}")
 print(f"camadas:{camadas}")
+print(f"eh:{eh:.2f}")
+
