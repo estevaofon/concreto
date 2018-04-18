@@ -2,11 +2,11 @@ import math
 # Entrada de dados
 # bw h d -> mm
 bw = 150
-L = 6000  
+L = 6000
 h = L/(10)
-d = 0.9*h  
+d = 0.9*h
 # com d inicial
-#d = 400 
+# d = 400
 
 # espacamento -> mm
 cnom = 30
@@ -109,8 +109,8 @@ def desbitolagem(As):
     return nbarras
 
 
-def ev(bitola, dbrita):
-    ev = 20 *10**-3
+def ev_min(bitola, dbrita):
+    ev = 20 * 10**-3
     if bitola > ev:
         ev = bitola
     elif 0.5*dbrita > ev:
@@ -118,8 +118,8 @@ def ev(bitola, dbrita):
     return ev
 
 
-def eh(bitola, dbrita):
-    eh = 20 *10**-3
+def eh_min(bitola, dbrita):
+    eh = 20 * 10**-3
     if bitola > eh:
         eh = bitola
     elif 1.2*dbrita > eh:
@@ -128,7 +128,7 @@ def eh(bitola, dbrita):
 
 
 def bwmin(dbitola, dt, dbrita, nbarras, cnom):
-    a = eh(dbitola, dbrita)
+    a = eh_min(dbitola, dbrita)
     bs = nbarras*dbitola + (nbarras-1)*a
     bwm = bs + 2*(dt + cnom)
     return bwm
@@ -189,7 +189,7 @@ def distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom):
 
 
 def d1_real(cnom, dt, bitola, camadas):
-    a = ev(bitola, dbrita)
+    a = ev_min(bitola, dbrita)
     abitola = math.pi*(bitola/2)**2
     soma = 0
     for i, barras in enumerate(camadas):
@@ -203,6 +203,7 @@ def d1_real(cnom, dt, bitola, camadas):
 def d_real(d1, h):
     return h-d1
 
+
 def d_test(d1_est, d1_real):
     c = d1_real/d1_est
     print(c)
@@ -212,6 +213,34 @@ def d_test(d1_est, d1_real):
     else:
         print("Difereca maior que 1.10")
         return 0
+
+
+def eh_por_camada(camadas, bitola, dt, cnom, bw):
+    eh_list = []
+    for n in camadas:
+        if n > 1:
+            a = (bw-2*cnom-2*dt-n*bitola)/(n-1)
+        elif n == 1:
+            a = bw - 2*cnom-2*dt-bitola
+        eh_list.append(a)
+    return eh_list
+
+
+def delta_teste(cnom, dt, bitola, camadas, h):
+    a = ev_min(bitola, dbrita)
+    abitola = math.pi*(bitola/2)**2
+    soma = 0
+    for i, barras in enumerate(camadas):
+        soma += barras*abitola*((bitola/2)+a*i+bitola*i)
+    bitola_str = str(bitola*10**3)
+    yc = soma/(nbarras[bitola_str]*abitola)
+    print(f"yc {yc*1000}")
+    if yc <= 0.1*h:
+        print("Passou no delta teste")
+    else:
+        print("Não passou no delta teste")
+    return 1
+
 
 
 kmd = kmd_calc(Msd, bw, d, fcd)
@@ -228,7 +257,9 @@ dminimo = dminimo*100
 dom = dominio(kx)
 nbarras = desbitolagem(As)
 camadas = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
+eh_camadas = eh_por_camada(camadas, bitola, dt, cnom, bw)
 d1 = d1_real(cnom, dt, bitola, camadas)
+delta_teste(cnom, dt, bitola, camadas, h)
 d_r = d_real(d1, h)
 d_test(d1_est, d1)
 print(f"d1: {d1*100:.2f} cm")
@@ -244,5 +275,4 @@ print("As: {:.2f} cm2".format(As_cm))
 print(nbarras)
 print(f"Bitola:{str(bitola*10**3)}")
 print(f"camadas:{camadas}")
-print(f"eh:{eh:.2f}")
-
+print(f"eh:{[eh*100 for eh in eh_camadas]}")
