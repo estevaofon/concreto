@@ -1,45 +1,38 @@
 import math
 # Entrada de dados
-# bw h d -> mm
+# dimensoes -> mm
 bw = 150
-L = 6000
-# h = L/(10)
-# d = 0.9*h
-# com d inicial
-# d = 400
 h = 650
 d = 590
 
-# espacamento -> mm
 cnom = 30
 dbrita = 19
 dt = 6.3  # diametro do estribo
 bitola = 20
 
 # Mk -> kN.m
-M = 58.4
+# Mk = 58.4
+# Msd = 1.4*Mk
+Msd = 109
 # fck -> MPa
 fck = 30
 fy = 500
 fyd = fy/1.15
 
-# Conversoes
-h = h*10**-3  # metros
-bw = bw*10**-3  # metros
+# Conversoes para Metro
+h = h*10**-3
+bw = bw*10**-3
 d = d*10**-3
-M = M*10**3  # N.m
 fck = fck*10**6  # Pa
 fyd = fyd*10**6
 cnom = cnom*10**-3
 dbrita = dbrita*10**-3
 dt = dt*10**-3
 bitola = bitola*10**-3
+Msd = Msd*10**3  # N.m
 
 # Calculos
 fcd = fck/1.4
-# Msd = 1.4*M
-Msd = 247
-Msd = Msd*10**3  # N.m
 d1_est = h-d
 
 
@@ -140,32 +133,6 @@ def bwmin(dbitola, dt, dbrita, nbarras, cnom):
     return bwm
 
 
-def distribuicao_max2(bw, nbarras, bitola, dt, dbrita, cnom):
-    # maximo de barra por camada
-    bitola_str = str(bitola*10**3)
-    bwm = bwmin(bitola, dt, dbrita, nbarras[bitola_str], cnom)
-    layers = 1
-    barra_unica = 0
-    camadabarra = {}
-    while bwm >= bw:
-        layers += 1
-        n = nbarras[bitola_str]/layers
-        if n % 2:
-            barra_unica = 1
-            if n < 2:
-                n = 2
-            else:
-                n = int(n)
-                layers += 1
-            camadabarra[str(layers)] = 1
-        bwm = bwmin(12.5*10**-3, dt, dbrita, n, cnom)
-        print(f"novo bwmin {bwm}")
-        print(f"numero de barra por camada: {n}")
-        print(f"numero de camadas: {layers}")
-
-    print(f"Camada-barra {camadabarra}")
-
-
 def distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom):
     # maximo de barra por camada
     bitola_str = str(bitola*10**3)
@@ -175,18 +142,24 @@ def distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom):
     camadas = []
     n = nbarras[bitola_str]
     barra_max = 0
-    while bwm >= bw:
+    if bwm <= bw:
+        camadas.append(n)
+        return(camadas)
+    # numero max de barra por camada
+    while bwm > bw:
+        # reduz uma barra em cada loop
         n -= 1
         layers += 1
         bwm = bwmin(12.5*10**-3, dt, dbrita, n, cnom)
         if bwm <= bw:
             barra_max = n
     nb = nbarras[bitola_str]
+    # distribuicao das barras
     while nb > 0:
         if (nb - barra_max) >= 0:
             camadas.append(barra_max)
             nb -= barra_max
-        elif nb > 0:
+        else:
             camadas.append(nb)
             nb = 0
     return(camadas)
@@ -211,7 +184,7 @@ def d_real(d1, h):
 def d_test(d1_est, d1_real):
     c = d1_real/d1_est
     if c <= 1.10:
-        print("d esta ok")
+        print("d1real/dest <= 1.10 OK")
         return 1
     else:
         print("Difereca maior que 1.10 => {:.3f}".format(c))
@@ -238,7 +211,7 @@ def delta_teste(cnom, dt, bitola, camadas, h):
     bitola_str = str(bitola*10**3)
     yc = soma/(nbarras[bitola_str]*abitola)
     if yc <= 0.1*h:
-        print("Passou no teste de tensao centrada no cg")
+        print("tensao centrada no cg OK")
     else:
         print("Não passou no delta teste")
     return 1
@@ -251,7 +224,7 @@ def test_min_steelarea(bw, h, fck, As):
               '70': 0.233, '75': 0.239, '80': 0.245, '85': 0.251, '90': 0.256}
     asmin = (tx_min[fck]/100)*bw*h
     if As >= asmin:
-        print("Area min ok")
+        print("Armadura min OK")
         return 0
     else:
         print("Menor que a area min")
@@ -260,7 +233,7 @@ def test_min_steelarea(bw, h, fck, As):
 
 def test_max_steelarea(bw, h, fck, As):
     if As <= (4/100)*(bw*h):
-        print("Area maxima ok")
+        print("Armadura maxima OK")
         return 0
     else:
         print("Maior que a area maxima")
@@ -291,11 +264,11 @@ def as_pele(bw, h, bitola, dt, ev, camadas, cnom):
 
         t = J/(n+1)
         if t > 0.2:
-            print("Nao ok, t > 20cm")
+            print("Nao OK, t > 20cm")
         if t > d/3:
-            print("Nao ok, t > d/3")
+            print("Nao OK, t > d/3")
         if t > 15*bitola:
-            print("t não ok")
+            print("t não OK")
 
     else:
         print("Não precisa de As de pele")
@@ -344,4 +317,4 @@ print(f"Bitola:{str(bitola*10**3)}")
 print(f"camadas:{camadas}")
 print(f"eh:{[str(round(eh*100,2)) for eh in eh_camadas]}")
 print(f"ev:{ev*100}")
-print(n, str(round(t*100,2)))
+print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))
