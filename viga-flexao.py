@@ -2,23 +2,28 @@ import math
 # Entrada de dados
 # dimensoes -> mm
 bw = 150
-h = 650
-d = 590
+h = 400
+d = 340
 
-cnom = 30
-dbrita = 19
-dt = 6.3  # diametro do estribo
+dt = 5  # diametro do estribo
 bitola = 20
+# classe de agressividade
+caa = 1
+brita = 1
 
 # Mk -> kN.m
-# Mk = 58.4
-# Msd = 1.4*Mk
-Msd = 109
+Mk = 70
+Msd = 1.4*Mk
+#Msd = 109
 # fck -> MPa
-fck = 30
+fck = 25
 fy = 500
 fyd = fy/1.15
 
+dic_caa = {1: 25, 2: 30, 3: 40, 4: 50}
+dic_brita = {1: 19, 2: 25, 3: 50, 4: 76}
+dbrita = dic_brita[brita]
+cnom = dic_caa[caa]
 # Conversoes para Metro
 h = h*10**-3
 bw = bw*10**-3
