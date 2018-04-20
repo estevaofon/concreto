@@ -14,11 +14,10 @@ brita = 1
 # Mk -> kN.m
 Mk = 70
 Msd = 1.4*Mk
-#Msd = 109
+# Msd = 109
 # fck -> MPa
 fck = 25
 fy = 500
-fyd = fy/1.15
 
 dic_caa = {1: 25, 2: 30, 3: 40, 4: 50}
 dic_brita = {1: 19, 2: 25, 3: 50, 4: 76}
@@ -29,7 +28,8 @@ h = h*10**-3
 bw = bw*10**-3
 d = d*10**-3
 fck = fck*10**6  # Pa
-fyd = fyd*10**6
+fy = fy*10**6
+fyd = fy/1.15
 cnom = cnom*10**-3
 dbrita = dbrita*10**-3
 dt = dt*10**-3
@@ -85,14 +85,42 @@ def dmin(Msd, bw, fcd):
     return d
 
 
-def dominio(kx):
-    if kx > 0.259 and kx <= 0.45:
-        n_dominio = 3
-    elif kx <= 0.259 and kx >= 0.02:
-        n_dominio = 2
+def ecu_calc(fck):
+    fck = fck/10**6  # Pa
+    # 20, 50, 90
+    if fck <= 50:
+        ecu = 3.5
     else:
-        print("Fora do dominio 2 e 3")
-        n_dominio = 0
+        ecu = 2.6 + 35*((90-fck)/100)**4
+    return ecu
+
+
+def dominio(kx, fck, fy=500*10**6):
+    ecu = ecu_calc(fck)
+    fy = int(fy/10**7)
+    fck = fck/10**6  # Pa
+    # fck ex 20, fy 500
+    dic_eyd = {25: 1.035, 50: 2.070, 60: 2.484}
+    eyd = dic_eyd[fy]
+    if kx < 0:
+        print("Dominio 1")
+        n_dominio = 1
+    elif kx > 0 and kx <= ecu/(ecu+10):
+        print("Dominio 2")
+        n_dominio = 2
+    elif kx >= ecu/(ecu+10) and kx < ecu/(ecu + eyd):
+        print("Dominio 3")
+        n_dominio = 3
+    elif kx >= ecu/(ecu+eyd) and kx <= 1:
+        print("Dominio 4")
+        n_dominio = 4
+
+    if fck <= 50 and kx <= 0.45:
+        print("dutilidade OK")
+    elif fck > 50 and kx <= 0.35:
+        print("dutilidade OK")
+    else:
+        print("Fora do limite de dutilidade")
     return n_dominio
 
 
@@ -293,7 +321,7 @@ x1_cm = x1 * 100
 x2_cm = x2 * 100
 dminimo = dmin(Msd, bw, fcd)
 dminimo = dminimo*100
-dom = dominio(kx)
+dom = dominio(kx, fck, fy)
 nbarras = desbitolagem(As)
 camadas = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
 eh_camadas = eh_por_camada(camadas, bitola, dt, cnom, bw)
@@ -303,6 +331,7 @@ d_r = d_real(d1, h)
 d_test(d1_est, d1)
 ev = ev_min(bitola, dbrita)
 n, t = as_pele(bw, h, bitola, dt, ev, camadas, cnom)
+ecu = ecu_calc(fck)
 print(f"dmin:{dminimo:.2f}")
 print(f"d1: {d1*100:.2f} cm")
 print(f"d1_est: {d1_est*100:.2f} cm")
@@ -323,3 +352,4 @@ print(f"camadas:{camadas}")
 print(f"eh:{[str(round(eh*100,2)) for eh in eh_camadas]}")
 print(f"ev:{ev*100}")
 print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))
+print(f"ecu {ecu}")
