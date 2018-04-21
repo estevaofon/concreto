@@ -3,7 +3,7 @@ import math
 # dimensoes -> mm
 bw = 150
 h = 400
-d = 340
+d = h*0.9
 
 dt = 5  # diametro do estribo
 bitola = 20
@@ -12,7 +12,7 @@ caa = 1
 brita = 1
 
 # Mk -> kN.m
-Mk = 70
+Mk = 75
 Msd = 1.4*Mk
 # Msd = 109
 # fck -> MPa
@@ -68,7 +68,7 @@ def sigma_lambda_calc(fck):
     return sigmac, lambdac
 
 
-def steel_area(Msd, d, fyd):
+def steel_area(Msd, d, fyd, kz):
     As = Msd/(kz*d*fyd)
     return As
 
@@ -98,8 +98,6 @@ def ecu_calc(fck):
 def dominio(kx, fck, fy=500*10**6):
     ecu = ecu_calc(fck)
     fy = int(fy/10**7)
-    fck = fck/10**6  # Pa
-    # fck ex 20, fy 500
     dic_eyd = {25: 1.035, 50: 2.070, 60: 2.484}
     eyd = dic_eyd[fy]
     if kx < 0:
@@ -121,6 +119,12 @@ def dominio(kx, fck, fy=500*10**6):
         print("dutilidade OK")
     else:
         print("Fora do limite de dutilidade")
+        sigmac, lambdac = sigma_lambda_calc(fck)
+        kmd = kmd_from_kx(kx, sigmac=sigmac, lambdac=lambdac)
+        if armadura_dupla_viavel(kmd):
+            print("Armadura é viavel")
+        else:
+            print("Armadura dupla nao é viavel")
     return n_dominio
 
 
@@ -171,7 +175,6 @@ def distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom):
     bitola_str = str(bitola*10**3)
     bwm = bwmin(bitola, dt, dbrita, nbarras[bitola_str], cnom)
     layers = 0
-    barra_unica = 0
     camadas = []
     n = nbarras[bitola_str]
     barra_max = 0
@@ -274,6 +277,7 @@ def test_max_steelarea(bw, h, fck, As):
 
 
 def barra_int(value):
+    "Retorna a quantidade de barra com o valor inteiro"
     decimal = value - int(value)
     if decimal <= 0.3 and value >= 1:
         value = math.floor(value)
@@ -283,6 +287,10 @@ def barra_int(value):
 
 
 def as_pele(bw, h, bitola, dt, ev, camadas, cnom):
+    """
+    Calcula a armadura de pele
+    e o espacamento entre elas
+    """
     n_c = len(camadas)
     n_ev = n_c - 1
     w = cnom+dt+n_c*bitola+n_ev*ev-bitola/2
@@ -307,12 +315,37 @@ def as_pele(bw, h, bitola, dt, ev, camadas, cnom):
         print("Não precisa de As de pele")
     return(n, t)
 
+def kmd_from_kx(kx, sigmac=0.85, lambdac=0.8):
+    kmd =-(sigmac/2)*((kx*lambdac-1)**2-1)
+    return kmd
+
+
+def msd1_calc(bw, d, fcd, kmdlim=0.251):
+    """Msd1 da armadura dupla"""
+    msd1 = kmdlim*bw*(d**2)*fcd
+    return msd1
+
+
+def msd2_calc(Msd, msd1):
+    """Msd1 da armadura dupla"""
+    msd2 = Msd - msd1
+    return msd2
+
+
+def armadura_dupla_viavel(kmd):
+    """Se for possivel o uso
+    de armadura dupla retorna true"""
+    if kmd <= 0.425:
+        return True
+    else:
+        return False
+
 
 kmd = kmd_calc(Msd, bw, d, fcd)
 sigmac, lambdac = sigma_lambda_calc(fck)
 kx = kx_calc(kmd, sigmac, lambdac)
 kz = kz_calc(lambdac, kx)
-As = steel_area(Msd, d, fyd)
+As = steel_area(Msd, d, fyd, kz)
 amin = test_min_steelarea(bw, h, fck, As)
 amin = test_max_steelarea(bw, h, fck, As)
 As_cm = As * 10**4
@@ -332,6 +365,7 @@ d_test(d1_est, d1)
 ev = ev_min(bitola, dbrita)
 n, t = as_pele(bw, h, bitola, dt, ev, camadas, cnom)
 ecu = ecu_calc(fck)
+msd1 = msd1_calc(bw, d, fcd)
 print(f"dmin:{dminimo:.2f}")
 print(f"d1: {d1*100:.2f} cm")
 print(f"d1_est: {d1_est*100:.2f} cm")
@@ -353,3 +387,14 @@ print(f"eh:{[str(round(eh*100,2)) for eh in eh_camadas]}")
 print(f"ev:{ev*100}")
 print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))
 print(f"ecu {ecu}")
+
+# ========= Calculo de armadura dupla =============
+
+print("{0:=^40}".format("Calculo de armadura dupla"))
+msd1 = msd1_calc(bw, d, fcd)
+msd2 = msd2_calc(Msd, msd1)
+as1 = steel_area(msd1, d, fyd, kz=0.820)
+print(f"Msd1:{msd1}")
+print(f"Msd2:{msd2}")
+print(f"Msd:{Msd}")
+print(f"As1:{as1*10**4}")
