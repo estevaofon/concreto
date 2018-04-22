@@ -2,17 +2,17 @@ import math
 # Entrada de dados
 # dimensoes -> mm
 bw = 150
-h = 400
+h = 600
 d = h*0.9
 
-dt = 5  # diametro do estribo
-bitola = 16
+dt = 6.5  # diametro do estribo
+bitola = 12.5
 # classe de agressividade
-caa = 1
-brita = 1
+caa = 2
+brita = 2
 
 # Mk -> kN.m
-Mk = 75
+Mk = 58.4
 Msd = 1.4*Mk
 # Msd = 109
 # fck -> MPa
@@ -78,15 +78,20 @@ def steel_area_d(Msd, d, d2, sigmad):
     return As
 
 
-def linha_neutra(d, Msd, bw, fcd):
-    a = math.sqrt((0.68*d)**2-4*0.272*(Msd/(bw*fcd)))
-    x1 = (0.68*d + a)/0.544
-    x2 = (0.68*d - a)/0.544
+def linha_neutra(d, Msd, bw, fcd, sigmac, lambdac):
+    a = math.sqrt(d**2-2*(Msd/(bw*fcd*sigmac)))
+    x1 = (d + a)/lambdac
+    x2 = (d - a)/lambdac
     return x1, x2
 
 
 def dmin(Msd, bw, fcd):
-    d = 2.0*math.sqrt(Msd/(bw*fcd))
+    fcd50 = (50*10**6)/1.4
+    if fcd <= fcd50:
+        kxlim = 0.45
+    else:
+        kxlim = .35
+    d = math.sqrt(Msd/(bw*fcd*(0.68*kxlim-0.272*kxlim**2)))
     return d
 
 
@@ -376,7 +381,7 @@ As = steel_area(Msd, d, fyd, kz)
 amin = test_min_steelarea(bw, h, fck, As)
 amin = test_max_steelarea(bw, h, fck, As)
 As_cm = As * 10**4
-x1, x2 = linha_neutra(d, Msd, bw, fcd)
+x1, x2 = linha_neutra(d, Msd, bw, fcd, sigmac, lambdac)
 x1_cm = x1 * 100
 x2_cm = x2 * 100
 dminimo = dmin(Msd, bw, fcd)
@@ -413,7 +418,6 @@ print(f"camadas:{camadas}")
 print(f"eh:{[str(round(eh*100,2)) for eh in eh_camadas]}")
 print(f"ev:{ev*100}")
 print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))
-print(f"ecu {ecu}")
 
 # ========= Calculo de armadura dupla =============
 
