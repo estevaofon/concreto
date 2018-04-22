@@ -6,7 +6,7 @@ h = 400
 d = h*0.9
 
 dt = 5  # diametro do estribo
-bitola = 20
+bitola = 16
 # classe de agressividade
 caa = 1
 brita = 1
@@ -70,6 +70,11 @@ def sigma_lambda_calc(fck):
 
 def steel_area(Msd, d, fyd, kz):
     As = Msd/(kz*d*fyd)
+    return As
+
+
+def steel_area_d(Msd, d, d2, sigmad):
+    As = Msd/((d-d2)*sigmad)
     return As
 
 
@@ -341,6 +346,28 @@ def armadura_dupla_viavel(kmd):
         return False
 
 
+def esdl(ecu, d2, d, kxlim=0.45):
+    esd = ecu*(kxlim-d2/d)/kxlim
+    return esd
+
+
+def sigmas_calc(es, fy):
+    """
+    Funcao para obter a tensao 
+    no aco do valor da deformacao
+    """
+    fyd = fy/1.15
+    aco = int(fy/10**7)
+    eyd_dic = {25: 1.035, 50: 2.070, 60: 2.484}
+    eyd = eyd_dic[aco]
+    if es >= eyd and es <= 10:
+        sigmas = fyd
+    elif es >= 0 and es <= eyd:
+        Es = 2.1*10**5
+        sigmas = Es*es
+    return sigmas
+
+
 kmd = kmd_calc(Msd, bw, d, fcd)
 sigmac, lambdac = sigma_lambda_calc(fck)
 kx = kx_calc(kmd, sigmac, lambdac)
@@ -394,7 +421,43 @@ print("{0:=^40}".format("Calculo de armadura dupla"))
 msd1 = msd1_calc(bw, d, fcd)
 msd2 = msd2_calc(Msd, msd1)
 as1 = steel_area(msd1, d, fyd, kz=0.820)
+d2 = h-d
+as2 = steel_area_d(msd2, d, d2, fyd)
+as0 = as1+as2
+nbarras = desbitolagem(as0)
+camadas = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
+delta_teste(cnom, dt, bitola, camadas, h)
+selecionadas = [10.0, 12.5, 16.0, 20.0, 22.0]
+dic_barras = {}
+for i in selecionadas:
+    dic_barras[str(i)] = nbarras[str(i)]
+esd = esdl(ecu, d2, d)
+sigmas = sigmas_calc(esd, fy)
+asl = steel_area_d(msd2, d, d2, sigmas)
+
+print(dic_barras)
+print(f"Bitola:{str(bitola*10**3)}")
+print(f"camadas:{camadas}")
+
+
 print(f"Msd1:{msd1}")
 print(f"Msd2:{msd2}")
 print(f"Msd:{Msd}")
 print(f"As1:{as1*10**4}")
+print(f"As2:{as2*10**4}")
+print(f"As:{as0*10**4}")
+print(f"esd:{esd}")
+print(f"sigmas:{sigmas/10**6}")
+print(f"fy:{fy/10**6}")
+print(f"Asl:{asl*10**4}")
+
+nbarras = desbitolagem(asl)
+camadas = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
+delta_teste(cnom, dt, bitola, camadas, h)
+selecionadas = [5.0, 6.3, 8.0, 10.0, 12.5, 16.0]
+dic_barras = {}
+for i in selecionadas:
+    dic_barras[str(i)] = nbarras[str(i)]
+print(dic_barras)
+print(f"Bitola:{str(bitola*10**3)}")
+print(f"camadas:{camadas}")
