@@ -53,10 +53,13 @@ def draw_beam(bw, h, bitola):
         bs1 = bw -4*cnom
         print("bs1", bs1*1/ft)
         x0 = x
-        eh = bs1/(n_barras-1)
-        for i in range(n_barras):
+        if n_barras == 1:
             dr.ellipse((x-r, y-r, x+r, y+r), fill="blue")
-            x += eh
+        else:
+            eh = bs1/(n_barras-1)
+            for i in range(n_barras):
+                dr.ellipse((x-r, y-r, x+r, y+r), fill="blue")
+                x += eh
 
         x = x0
         y = y0 +24
@@ -67,17 +70,18 @@ def draw_beam(bw, h, bitola):
             x += eh
             print(x)
 
+
     x = x0+20
     y = h+23
-    desenha_camada(x, y, bitola, 3, x0, y0, ft)
+    camadas = [(12.5,4), (12.5, 3), (10,2)]
+    ev = 0
+    for c in camadas:
+        if c[0] > ev:
+            ev = c[0]
 
-    x = x0+20
-    y -=  20
-    desenha_camada(x, y, bitola, 2, x0, y0, ft)
-
-    x = x0+20
-    y -=  20
-    desenha_camada(x, y, bitola, 4, x0, y0, ft)
+    for camada in camadas:
+        desenha_camada(x, y, camada[0], camada[1], x0, y0, ft)
+        y -= ev*2
     im.save("viga.png")
 
 draw_beam(150, 600, 10)
