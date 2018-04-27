@@ -122,7 +122,8 @@ def dominio(kx, fck, fy=500*10**6):
     elif kx >= ecu/(ecu+eyd) and kx <= 1:
         print("Dominio 4")
         n_dominio = 4
-
+    
+    fck = fck/10**6
     if fck <= 50 and kx <= 0.45:
         print("dutilidade OK")
     elif fck > 50 and kx <= 0.35:
