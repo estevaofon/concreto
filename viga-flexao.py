@@ -2,21 +2,21 @@ import math
 # Entrada de dados
 # dimensoes -> mm
 bw = 150
-h = 600
+h = 750
 d = h*0.9
 
-dt = 6.5  # diametro do estribo
+dt = 6.3 # diametro do estribo
 bitola = 12.5
 # classe de agressividade
 caa = 2
 brita = 2
 
 # Mk -> kN.m
-Mk = 58.4
-Msd = 1.4*Mk
-# Msd = 109
+#Mk = 58.4
+#Msd = 1.4*Mk
+Msd = 114.3
 # fck -> MPa
-fck = 25
+fck = 45
 fy = 500
 
 dic_caa = {1: 25, 2: 30, 3: 40, 4: 50}
@@ -144,12 +144,16 @@ def desbitolagem(As):
     bitolas = [5, 6.3, 8, 10, 12.5, 16, 20, 22.0, 25.0, 32, 40]
     bitolas_m = [bmm*10**-3 for bmm in bitolas]
     nbarras = {}
+    area_por_bitola = {5: 0.20, 6.3: 0.31, 8: 0.50, 10: 0.79, 12.5: 1.23, 16: 2.01, 20: 3.14,
+    22.0: 3.8, 25: 4.91, 32: 8.04, 40: 12.6}
     for bmm in bitolas_m:
         area = math.pi*(bmm**2)/4
         nbarras[str(bmm*10**3)] = As/area
+    for bit in bitolas:
+        nbarras[str(bit)] = As/(area_por_bitola[bit]*10**-4)
     for key, value in nbarras.items():
-        decimal = value - int(value)
-        if decimal <= 0.3 and value >= 1:
+        decimal = abs(value - int(value))
+        if decimal <= 0.15 and value >= 1:
             nbarras[key] = math.floor(value)
         else:
             nbarras[key] = math.ceil(value)
@@ -229,6 +233,7 @@ def d_real(d1, h):
 
 
 def d_test(d1_est, d1_real):
+    print(f"D1 real {d1_real}")
     c = d1_real/d1_est
     if c <= 1.10:
         print("d1real/dest <= 1.10 OK")
@@ -289,8 +294,8 @@ def test_max_steelarea(bw, h, fck, As):
 
 def barra_int(value):
     "Retorna a quantidade de barra com o valor inteiro"
-    decimal = value - int(value)
-    if decimal <= 0.3 and value >= 1:
+    decimal = abs(value - int(value))
+    if decimal <= 0.15 and value >= 1:
         value = math.floor(value)
     else:
         value = math.ceil(value)
@@ -320,6 +325,8 @@ def as_pele(bw, h, bitola, dt, ev, camadas, cnom):
         if t > d/3:
             print("Nao OK, t > d/3")
         if t > 15*bitola:
+            print(f"O t {t}")
+            print(f"bitola *15 {bitola*15}")
             print("t não OK")
 
     else:
@@ -421,48 +428,49 @@ print(f"ev:{ev*100}")
 print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))
 
 # ========= Calculo de armadura dupla =============
+armadura_dupla = False
+if armadura_dupla:
+    print("{0:=^40}".format("Calculo de armadura dupla"))
+    msd1 = msd1_calc(bw, d, fcd)
+    msd2 = msd2_calc(Msd, msd1)
+    as1 = steel_area(msd1, d, fyd, kz=0.820)
+    d2 = h-d
+    as2 = steel_area_d(msd2, d, d2, fyd)
+    as0 = as1+as2
+    nbarras = desbitolagem(as0)
+    camadas = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
+    delta_teste(cnom, dt, bitola, camadas, h)
+    selecionadas = [10.0, 12.5, 16.0, 20.0, 22.0]
+    dic_barras = {}
+    for i in selecionadas:
+        dic_barras[str(i)] = nbarras[str(i)]
+    esd = esdl(ecu, d2, d)
+    sigmas = sigmas_calc(esd, fy)
+    asl = steel_area_d(msd2, d, d2, sigmas)
 
-print("{0:=^40}".format("Calculo de armadura dupla"))
-msd1 = msd1_calc(bw, d, fcd)
-msd2 = msd2_calc(Msd, msd1)
-as1 = steel_area(msd1, d, fyd, kz=0.820)
-d2 = h-d
-as2 = steel_area_d(msd2, d, d2, fyd)
-as0 = as1+as2
-nbarras = desbitolagem(as0)
-camadas = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
-delta_teste(cnom, dt, bitola, camadas, h)
-selecionadas = [10.0, 12.5, 16.0, 20.0, 22.0]
-dic_barras = {}
-for i in selecionadas:
-    dic_barras[str(i)] = nbarras[str(i)]
-esd = esdl(ecu, d2, d)
-sigmas = sigmas_calc(esd, fy)
-asl = steel_area_d(msd2, d, d2, sigmas)
-
-print(dic_barras)
-print(f"Bitola:{str(bitola*10**3)}")
-print(f"camadas:{camadas}")
+    print(dic_barras)
+    print(f"Bitola:{str(bitola*10**3)}")
+    print(f"camadas:{camadas}")
 
 
-print(f"Msd1:{msd1}")
-print(f"Msd2:{msd2}")
-print(f"Msd:{Msd}")
-print(f"As1:{as1*10**4}")
-print(f"As2:{as2*10**4}")
-print(f"As:{as0*10**4}")
-print(f"esd:{esd}")
-print(f"sigmas:{sigmas/10**6}")
-print(f"fy:{fy/10**6}")
-print(f"Asl:{asl*10**4}")
+    print(f"Msd1:{msd1}")
+    print(f"Msd2:{msd2}")
+    print(f"Msd:{Msd}")
+    print(f"As1:{as1*10**4}")
+    print(f"As2:{as2*10**4}")
+    print(f"As:{as0*10**4}")
+    print(f"esd:{esd}")
+    print(f"sigmas:{sigmas/10**6}")
+    print(f"fy:{fy/10**6}")
+    print(f"Asl:{asl*10**4}")
 
-nbarras = desbitolagem(asl)
-camadas = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
-delta_teste(cnom, dt, bitola, camadas, h)
-selecionadas = [5.0, 6.3, 8.0, 10.0, 12.5, 16.0]
-dic_barras = {}
-for i in selecionadas:
-    dic_barras[str(i)] = nbarras[str(i)]
-print(dic_barras)
-print(f"Bitola:{str(bitola*10**3)}")
-print(f"camadas:{camadas}")
+    nbarras = desbitolagem(asl)
+    camadas = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
+    delta_teste(cnom, dt, bitola, camadas, h)
+    selecionadas = [5.0, 6.3, 8.0, 10.0, 12.5, 16.0]
+    dic_barras = {}
+    for i in selecionadas:
+        dic_barras[str(i)] = nbarras[str(i)]
+    print(dic_barras)
+    print(f"Bitola:{str(bitola*10**3)}")
+    print(f"camadas:{camadas}")

@@ -73,7 +73,7 @@ def draw_beam(bw, h, bitola):
 
     x = x0+20
     y = h+23
-    camadas = [(12.5,4), (12.5, 3), (10,2)]
+    camadas = [(16,2), (16, 2), (16,1)]
     ev = 0
     for c in camadas:
         if c[0] > ev:
@@ -84,4 +84,4 @@ def draw_beam(bw, h, bitola):
         y -= ev*2
     im.save("viga.png")
 
-draw_beam(150, 600, 10)
+draw_beam(150, 750, 10)
