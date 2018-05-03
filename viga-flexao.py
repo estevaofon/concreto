@@ -1,8 +1,9 @@
 import math
+import designer
 # Entrada de dados
 # dimensoes -> mm
 bw = 150
-h = 750
+h = 600
 d = h*0.9
 
 dt = 6.3 # diametro do estribo
@@ -12,11 +13,11 @@ caa = 2
 brita = 2
 
 # Mk -> kN.m
-#Mk = 58.4
-#Msd = 1.4*Mk
-Msd = 114.3
+Mk = 58.4
+Msd = 1.4*Mk
+#Msd = 114.3
 # fck -> MPa
-fck = 45
+fck = 25
 fy = 500
 
 dic_caa = {1: 25, 2: 30, 3: 40, 4: 50}
@@ -122,7 +123,7 @@ def dominio(kx, fck, fy=500*10**6):
     elif kx >= ecu/(ecu+eyd) and kx <= 1:
         print("Dominio 4")
         n_dominio = 4
-    
+
     fck = fck/10**6
     if fck <= 50 and kx <= 0.45:
         print("dutilidade OK")
@@ -236,7 +237,7 @@ def d_test(d1_est, d1_real):
     print(f"D1 real {d1_real}")
     c = d1_real/d1_est
     if c <= 1.10:
-        print("d1real/dest <= 1.10 OK")
+        print("d1real/dest <= 1.10 OK => {:.3f}".format(c))
         return 1
     else:
         print("Difereca maior que 1.10 => {:.3f}".format(c))
@@ -366,7 +367,7 @@ def esdl(ecu, d2, d, kxlim=0.45):
 
 def sigmas_calc(es, fy):
     """
-    Funcao para obter a tensao 
+    Funcao para obter a tensao
     no aco do valor da deformacao
     """
     fyd = fy/1.15
@@ -397,13 +398,19 @@ dminimo = dminimo*100
 dom = dominio(kx, fck, fy)
 nbarras = desbitolagem(As)
 camadas = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
+camadas_tuples = []
+for c in camadas:
+    t = (bitola*10**3, c)
+    camadas_tuples.append(t)
+print(camadas_tuples)
+print(bw)
+designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuples)
 eh_camadas = eh_por_camada(camadas, bitola, dt, cnom, bw)
 d1 = d1_real(cnom, dt, bitola, camadas)
 delta_teste(cnom, dt, bitola, camadas, h)
 d_r = d_real(d1, h)
 d_test(d1_est, d1)
 ev = ev_min(bitola, dbrita)
-n, t = as_pele(bw, h, bitola, dt, ev, camadas, cnom)
 ecu = ecu_calc(fck)
 msd1 = msd1_calc(bw, d, fcd)
 print(f"dmin:{dminimo:.2f}")
@@ -414,7 +421,6 @@ print(f"kmd: {kmd:.3f}")
 print("kx: {:.3f}".format(kx))
 print("kz: {:.3f}".format(kz))
 print(f"x1:{x1_cm:.2f}; x2:{x2_cm:.2f}")
-print(f"Dominio {dom}")
 print("As: {:.2f} cm2".format(As_cm))
 selecionadas = [8.0, 10.0, 12.5, 16.0, 20.0, 22.0]
 dic_barras = {}
@@ -425,7 +431,9 @@ print(f"Bitola:{str(bitola*10**3)}")
 print(f"camadas:{camadas}")
 print(f"eh:{[str(round(eh*100,2)) for eh in eh_camadas]}")
 print(f"ev:{ev*100}")
-print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))
+if h>0.6:
+    n, t = as_pele(bw, h, bitola, dt, ev, camadas, cnom)
+    print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))
 
 # ========= Calculo de armadura dupla =============
 armadura_dupla = False

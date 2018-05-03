@@ -2,39 +2,86 @@
 from PIL import Image, ImageFont, ImageDraw
 
 
-
 def round_corner(radius, fill, background):
     """Draw a round corner"""
     corner = Image.new('RGBA', (radius, radius), background)
     draw = ImageDraw.Draw(corner)
     draw.pieslice((0, 0, radius * 2, radius * 2), 180, 270, fill=fill)
     return corner
- 
+
+
 def round_rectangle(size, radius, fill, background):
     """Draw a rounded rectangle"""
     width, height = size
     rectangle = Image.new('RGBA', size, fill)
-    corner = round_corner(radius, fill,background)
+    corner = round_corner(radius, fill, background)
     rectangle.paste(corner, (0, 0))
-    rectangle.paste(corner.rotate(90), (0, height - radius)) # Rotate the corner and paste it
+    # Rotate the corner and paste it
+    rectangle.paste(corner.rotate(90), (0, height - radius))
     rectangle.paste(corner.rotate(180), (width - radius, height - radius))
     rectangle.paste(corner.rotate(270), (width - radius, 0))
     return rectangle
- 
-def draw_beam(bw, h, bitola):
-    width, height = 600, 500
+
+
+def desenha_camada(dr, x0, y0, bitola, n_barras, ft, x0_est, bw):
+    r = bitola*ft
+    cnom = x0_est - (x0-20)
+    bs1 = bw-4*cnom
+    if bitola >= 16:
+        bs1 = bw-4*cnom-(bitola/5)
+    if n_barras == 1:
+        dr.ellipse((x0-r, y0-r, x0+r, y0+r), fill="blue")
+    else:
+        eh = bs1/(n_barras-1)
+        for i in range(n_barras):
+            dr.ellipse((x0-r, y0-r, x0+r, y0+r), fill="blue")
+            x0 += eh
+
+
+def desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas):
+    x0 = x0+20
+    y0 = h+23
+    ev = 0
+    for c in camadas:
+        if c[0] > ev:
+            ev = c[0]
+
+    for camada in camadas:
+        desenha_camada(dr, x0, y0, camada[0], camada[1], ft, x0_est, bw)
+        y0 -= ev*2
+
+
+def desenha_porta_estribo(dr, x0, y0, ft, bw):
+    x = x0+20
+    y = y0+24
+    r = 6.5*ft
+    eh = int(bw-70*ft)
+    for i in range(2):
+        dr.ellipse((x-r, y-r, x+r, y+r), fill="purple")
+        x += eh
+
+
+def draw_beam(bw, h, camadas):
+    """
+    Desenha um viga de armadura simples
+    camadas = [(bitola, numero_barras), ...]
+    """
+    width, height = h+50, h - 150
     im = Image.new('RGBA', (width, height), 'white')
     dr = ImageDraw.Draw(im)
 
-    ft = 6/10
+    ft = 6/10  # fator de reducao do desenho
     bw = int(bw*ft)
     h = int(h*ft)
     x0 = int(width/2 - bw/2)
     y0 = 50
     x1 = x0 + bw
     y1 = y0 + h
-    dr.rectangle(((x0, y0),(x1, y1)), fill= (235, 235, 235, 255), outline = "black")
+    dr.rectangle(((x0, y0), (x1, y1)), fill=(235, 235, 235, 255),
+                 outline="black")
 
+    # Desenha o estribo
+    # est -> estribo
     x0_est = x0 + 10
     y0_est = y0 + 10
     h_est = h - 20
@@ -42,46 +89,15 @@ def draw_beam(bw, h, bitola):
     background = (235, 235, 235, 255)
     img = round_rectangle((bw_est, h_est), 10, "gray", background)
     im.paste(img, (x0_est, y0_est))
-
     background = (235, 235, 235, 255)
     img = round_rectangle((bw_est-10, h_est-20), 10, background, "gray")
-    im.paste(img, (x0_est+5,y0_est+10))
+    im.paste(img, (x0_est+5, y0_est+10))
 
-    def desenha_camada(x, y, bitola, n_barras, x0, y0, ft):
-        r = bitola*ft
-        cnom = x0_est - x0
-        bs1 = bw -4*cnom
-        print("bs1", bs1*1/ft)
-        x0 = x
-        if n_barras == 1:
-            dr.ellipse((x-r, y-r, x+r, y+r), fill="blue")
-        else:
-            eh = bs1/(n_barras-1)
-            for i in range(n_barras):
-                dr.ellipse((x-r, y-r, x+r, y+r), fill="blue")
-                x += eh
-
-        x = x0
-        y = y0 +24
-        r = 6.5*ft
-        eh = int(bw-70*ft)
-        for i in range(2):
-            dr.ellipse((x-r, y-r, x+r, y+r), fill="purple")
-            x += eh
-            print(x)
-
-
-    x = x0+20
-    y = h+23
-    camadas = [(16,2), (16, 2), (16,1)]
-    ev = 0
-    for c in camadas:
-        if c[0] > ev:
-            ev = c[0]
-
-    for camada in camadas:
-        desenha_camada(x, y, camada[0], camada[1], x0, y0, ft)
-        y -= ev*2
+    desenha_porta_estribo(dr, x0, y0, ft, bw)
+    desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas)
     im.save("viga.png")
 
-draw_beam(150, 750, 10)
+
+if __name__ == "__main__":
+    camadas = [(16, 2), (10, 2), (6.3, 1)]
+    draw_beam(300, 750, camadas)
