@@ -3,21 +3,21 @@ import designer
 # Entrada de dados
 # dimensoes -> mm
 bw = 150
-h = 600
+h = 650
 d = h*0.9
 
-dt = 6.3 # diametro do estribo
-bitola = 12.5
+dt = 6.5 # diametro do estribo
+bitola = 20
 # classe de agressividade
-caa = 2
-brita = 2
+caa = 1
+brita = 1
 
 # Mk -> kN.m
-Mk = 58.4
-Msd = 1.4*Mk
-#Msd = 114.3
+Mk = 50
+#Msd = 1.4*Mk
+Msd = 247
 # fck -> MPa
-fck = 25
+fck = 30
 fy = 500
 
 dic_caa = {1: 25, 2: 30, 3: 40, 4: 50}
@@ -202,7 +202,7 @@ def distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom):
         # reduz uma barra em cada loop
         n -= 1
         layers += 1
-        bwm = bwmin(12.5*10**-3, dt, dbrita, n, cnom)
+        bwm = bwmin(bitola, dt, dbrita, n, cnom)
         if bwm <= bw:
             barra_max = n
     nb = nbarras[bitola_str]
@@ -234,7 +234,6 @@ def d_real(d1, h):
 
 
 def d_test(d1_est, d1_real):
-    print(f"D1 real {d1_real}")
     c = d1_real/d1_est
     if c <= 1.10:
         print("d1real/dest <= 1.10 OK => {:.3f}".format(c))
@@ -402,8 +401,6 @@ camadas_tuples = []
 for c in camadas:
     t = (bitola*10**3, c)
     camadas_tuples.append(t)
-print(camadas_tuples)
-print(bw)
 designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuples)
 eh_camadas = eh_por_camada(camadas, bitola, dt, cnom, bw)
 d1 = d1_real(cnom, dt, bitola, camadas)
@@ -414,7 +411,7 @@ ev = ev_min(bitola, dbrita)
 ecu = ecu_calc(fck)
 msd1 = msd1_calc(bw, d, fcd)
 print(f"dmin:{dminimo:.2f}")
-print(f"d1: {d1*100:.2f} cm")
+print(f"d1_real: {d1*100:.2f} cm")
 print(f"d1_est: {d1_est*100:.2f} cm")
 print(f"d_real: {d_r*100:.2f} cm")
 print(f"kmd: {kmd:.3f}")
@@ -427,10 +424,11 @@ dic_barras = {}
 for i in selecionadas:
     dic_barras[str(i)] = nbarras[str(i)]
 print(dic_barras)
-print(f"Bitola:{str(bitola*10**3)}")
-print(f"camadas:{camadas}")
+# print(f"Bitola:{str(bitola*10**3)}")
+# print(f"camadas:{camadas}")
 print(f"eh:{[str(round(eh*100,2)) for eh in eh_camadas]}")
 print(f"ev:{ev*100}")
+print(camadas_tuples)
 if h>0.6:
     n, t = as_pele(bw, h, bitola, dt, ev, camadas, cnom)
     print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))

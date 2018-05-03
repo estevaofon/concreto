@@ -66,7 +66,7 @@ def draw_beam(bw, h, camadas):
     Desenha um viga de armadura simples
     camadas = [(bitola, numero_barras), ...]
     """
-    width, height = h+50, h - 150
+    width, height = h+50, h
     im = Image.new('RGBA', (width, height), 'white')
     dr = ImageDraw.Draw(im)
 
