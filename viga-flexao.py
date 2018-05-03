@@ -15,7 +15,7 @@ brita = 1
 # Mk -> kN.m
 Mk = 50
 #Msd = 1.4*Mk
-Msd = 247
+Msd = 219
 # fck -> MPa
 fck = 30
 fy = 500
@@ -401,7 +401,6 @@ camadas_tuples = []
 for c in camadas:
     t = (bitola*10**3, c)
     camadas_tuples.append(t)
-designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuples)
 eh_camadas = eh_por_camada(camadas, bitola, dt, cnom, bw)
 d1 = d1_real(cnom, dt, bitola, camadas)
 delta_teste(cnom, dt, bitola, camadas, h)
@@ -432,7 +431,9 @@ print(camadas_tuples)
 if h>0.6:
     n, t = as_pele(bw, h, bitola, dt, ev, camadas, cnom)
     print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))
-
+    designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuples, n)
+else:
+    designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuples)
 # ========= Calculo de armadura dupla =============
 armadura_dupla = False
 if armadura_dupla:

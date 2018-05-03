@@ -45,6 +45,7 @@ def desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas):
     for c in camadas:
         if c[0] > ev:
             ev = c[0]
+            print(ev)
 
     for camada in camadas:
         desenha_camada(dr, x0, y0, camada[0], camada[1], ft, x0_est, bw)
@@ -55,13 +56,24 @@ def desenha_porta_estribo(dr, x0, y0, ft, bw):
     x = x0+20
     y = y0+24
     r = 6.5*ft
-    eh = int(bw-70*ft)
+    eh = int(bw-65*ft)
     for i in range(2):
         dr.ellipse((x-r, y-r, x+r, y+r), fill="purple")
         x += eh
 
 
-def draw_beam(bw, h, camadas):
+def desenha_pele(dr, x0, y0, ft, bw, h, n, camadas):
+    y1 = h+23
+    ev = camadas[0][0]
+    n += 1
+    for camada in camadas:
+        y1 -= ev*2
+    inc = (y1-y0)/(n)
+    for i in range(n):
+        desenha_porta_estribo(dr, x0, y0, ft, bw)
+        y0 += inc
+
+def draw_beam(bw, h, camadas, n_pele=0):
     """
     Desenha um viga de armadura simples
     camadas = [(bitola, numero_barras), ...]
@@ -93,11 +105,14 @@ def draw_beam(bw, h, camadas):
     img = round_rectangle((bw_est-10, h_est-20), 10, background, "gray")
     im.paste(img, (x0_est+5, y0_est+10))
 
-    desenha_porta_estribo(dr, x0, y0, ft, bw)
+    if not n_pele:
+        desenha_porta_estribo(dr, x0, y0, ft, bw)
+    else:
+        desenha_pele(dr, x0, y0, ft, bw, h, n_pele, camadas)
     desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas)
     im.save("viga.png")
 
 
 if __name__ == "__main__":
-    camadas = [(16, 2), (10, 2), (6.3, 1)]
-    draw_beam(300, 750, camadas)
+    camadas = [(20, 2), (10, 2), (12.5, 2)]
+    draw_beam(150, 750, camadas, 0)
