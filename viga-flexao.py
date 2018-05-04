@@ -4,22 +4,22 @@ import os
 # Entrada de dados
 # dimensoes -> mm
 bw = 150
-h = 600
-d = h*0.9
-#d=400
+h = 650
+#d = h*0.9
+d=590
 
 dt = 6.3 # diametro do estribo
-bitola = 12.5
+bitola = 20
 # classe de agressividade
-caa = 2
-brita = 2
+caa = 1
+brita = 1
 
 # Mk -> kN.m
 Mk = 58.4
 Msd = 1.4*Mk
-#Msd = 109
+Msd = 219
 # fck -> MPa
-fck = 25
+fck = 30
 fy = 500
 
 dic_caa = {1: 25, 2: 30, 3: 40, 4: 50}
@@ -142,7 +142,7 @@ def dominio(kx, fck, fy=500*10**6):
     return n_dominio
 
 
-def desbitolagem(As):
+def desbitolagem(As, bitola):
     # As_cm = As * 10**4
     bitolas = [5, 6.3, 8, 10, 12.5, 16, 20, 22.0, 25.0, 32, 40]
     bitolas_m = [bmm*10**-3 for bmm in bitolas]
@@ -155,14 +155,28 @@ def desbitolagem(As):
         nbarras[str(bmm*10**3)] = As/area
     for bit in bitolas:
         nbarras[str(bit)] = As/(area_por_bitola[bit]*10**-4)
-        nbarras_puro[str(bit)] = nbarras[str(bit)]
+    print(nbarras)
+    value = nbarras[str(bitola*10**3)]
+    decimal = abs(value - int(value))
+    barras_por_bitola = []
+    if decimal <= 0.1 and value >= 1:
+        nbarras[str(bitola*10**3)] = math.floor(value)
+        barras_por_bitola.append((bitola, math.floor(value)))
+    elif decimal > 0.1 and decimal < 0.5:
+        n = math.floor(value)-1
+        barras_por_bitola.append((bitola, n))
+    else:
+        nbarras[key] = math.ceil(value)
+        barras_por_bitola.append((bitola, math.floor(value)))
     for key, value in nbarras.items():
         decimal = abs(value - int(value))
         if decimal <= 0.1 and value >= 1:
             nbarras[key] = math.floor(value)
+        elif decimal > 0.1 and decimal < 0.4:
+            nbarras[key] = math.ceil(value)
         else:
             nbarras[key] = math.ceil(value)
-    return nbarras
+    return nbarras, barras_por_bitola
 
 
 def ev_min(bitola, dbrita):
@@ -198,9 +212,11 @@ def distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom):
     camadas = []
     n = nbarras[bitola_str]
     barra_max = 0
+    camadas_tuple = []
     if bwm <= bw:
         camadas.append(n)
-        return(camadas)
+        camadas_tuple.append((bitola, n))
+        return(camadas, camadas_tuple)
     # numero max de barra por camada
     while bwm > bw:
         # reduz uma barra em cada loop
@@ -214,21 +230,31 @@ def distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom):
     while nb > 0:
         if (nb - barra_max) >= 0:
             camadas.append(barra_max)
+            camadas_tuple.append((bitola, barra_max))
             nb -= barra_max
         else:
             camadas.append(nb)
+            camadas_tuple.append((bitola, nb))
             nb = 0
-    return(camadas)
+    return(camadas_tuple)
 
 
-def d1_real(cnom, dt, bitola, camadas):
-    a = ev_min(bitola, dbrita)
-    abitola = math.pi*(bitola/2)**2
+def yc_calc(camadas_tuple):
     soma = 0
-    for i, barras in enumerate(camadas):
+    area_total = 0
+    for i, camada in enumerate(camadas_tuple):
+        bitola = camada[0]
+        barras = camada[1]
+        a = ev_min(bitola, dbrita)
+        abitola = math.pi*(bitola/2)**2
         soma += barras*abitola*((bitola/2)+a*i+bitola*i)
-    bitola_str = str(bitola*10**3)
-    yc = soma/(nbarras[bitola_str]*abitola)
+        area_total += barras*abitola
+    yc = soma/area_total
+    return yc
+
+
+def d1_real(cnom, dt, camadas_tuple):
+    yc = yc_calc(camadas_tuple)
     d1 = cnom + dt + yc
     return d1
 
@@ -247,9 +273,11 @@ def d_test(d1_est, d1_real):
         return 0
 
 
-def eh_por_camada(camadas, bitola, dt, cnom, bw):
+def eh_por_camada(camadas_tuple, dt, cnom, bw):
     eh_list = []
-    for n in camadas:
+    for camada in camadas_tuple:
+        bitola = camada[0]
+        n = camada[1]
         if n > 1:
             a = (bw-2*cnom-2*dt-n*bitola)/(n-1)
         elif n == 1:
@@ -258,14 +286,8 @@ def eh_por_camada(camadas, bitola, dt, cnom, bw):
     return eh_list
 
 
-def delta_teste(cnom, dt, bitola, camadas, h):
-    a = ev_min(bitola, dbrita)
-    abitola = math.pi*(bitola/2)**2
-    soma = 0
-    for i, barras in enumerate(camadas):
-        soma += barras*abitola*((bitola/2)+a*i+bitola*i)
-    bitola_str = str(bitola*10**3)
-    yc = soma/(nbarras[bitola_str]*abitola)
+def delta_teste(cnom, dt, h, camadas_tuple):
+    yc = yc_calc(camadas_tuple)
     if yc <= 0.1*h:
         print("tensao centrada no cg OK")
     else:
@@ -306,15 +328,19 @@ def barra_int(value):
     return value
 
 
-def as_pele(bw, h, bitola, dt, ev, camadas, cnom):
+def as_pele(bw, h, dt, ev, cnom, camadas_tuple):
     """
     Calcula a armadura de pele
     e o espacamento entre elas
     """
-    n_c = len(camadas)
+    n_c = len(camadas_tuple)
     n_ev = n_c - 1
-    w = cnom+dt+n_c*bitola+n_ev*ev-bitola/2
-    J = h - cnom - dt - w
+    soma_bitola = 0
+    for camada in camadas_tuple:
+        bitola = camada[0]
+        soma_bitola += bitola
+    espaco_armadura = soma_bitola+n_ev*ev
+    J = h - 2*cnom - 2*dt - espaco_armadura
     n = 0
     t = 0
     if h > 0.6:
@@ -399,15 +425,15 @@ x2_cm = x2 * 100
 dminimo = dmin(Msd, bw, fcd)
 dminimo = dminimo*100
 dom = dominio(kx, fck, fy)
-nbarras = desbitolagem(As)
-camadas = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
-camadas_tuples = []
-for c in camadas:
-    t = (bitola*10**3, c)
-    camadas_tuples.append(t)
-eh_camadas = eh_por_camada(camadas, bitola, dt, cnom, bw)
-d1 = d1_real(cnom, dt, bitola, camadas)
-delta_teste(cnom, dt, bitola, camadas, h)
+nbarras, barras_por_bitola = desbitolagem(As, bitola)
+print(f"barras por bitola {barras_por_bitola}")
+camadas_tuple = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
+print(camadas_tuple)
+camadas_tuple_mm = [(item[0]*10**3, item[1]) for item in camadas_tuple]
+print(camadas_tuple_mm)
+eh_camadas = eh_por_camada( camadas_tuple, dt, cnom, bw)
+d1 = d1_real(cnom, dt, camadas_tuple)
+delta_teste(cnom, dt, h, camadas_tuple)
 d_r = d_real(d1, h)
 d_test(d1_est, d1)
 ev = ev_min(bitola, dbrita)
@@ -427,62 +453,12 @@ dic_barras = {}
 for i in selecionadas:
     dic_barras[str(i)] = nbarras[str(i)]
 print(dic_barras)
-# print(f"Bitola:{str(bitola*10**3)}")
-# print(f"camadas:{camadas}")
 print(f"eh:{[str(round(eh*100,3)) for eh in eh_camadas]}")
 print(f"ev:{ev*100}")
-print(camadas_tuples)
 if h>0.6:
-    n, t = as_pele(bw, h, bitola, dt, ev, camadas, cnom)
+    n, t = as_pele(bw, h, dt, ev, cnom, camadas_tuple)
     print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))
-    designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuples, n)
+    designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuple_mm, n)
 else:
-    designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuples)
+    designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuple_mm)
 os.system("xdg-open viga.png")
-# ========= Calculo de armadura dupla =============
-armadura_dupla = False
-if armadura_dupla:
-    print("{0:=^40}".format("Calculo de armadura dupla"))
-    msd1 = msd1_calc(bw, d, fcd)
-    msd2 = msd2_calc(Msd, msd1)
-    as1 = steel_area(msd1, d, fyd, kz=0.820)
-    d2 = h-d
-    as2 = steel_area_d(msd2, d, d2, fyd)
-    as0 = as1+as2
-    nbarras = desbitolagem(as0)
-    camadas = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
-    delta_teste(cnom, dt, bitola, camadas, h)
-    selecionadas = [10.0, 12.5, 16.0, 20.0, 22.0]
-    dic_barras = {}
-    for i in selecionadas:
-        dic_barras[str(i)] = nbarras[str(i)]
-    esd = esdl(ecu, d2, d)
-    sigmas = sigmas_calc(esd, fy)
-    asl = steel_area_d(msd2, d, d2, sigmas)
-
-    print(dic_barras)
-    print(f"Bitola:{str(bitola*10**3)}")
-    print(f"camadas:{camadas}")
-
-
-    print(f"Msd1:{msd1}")
-    print(f"Msd2:{msd2}")
-    print(f"Msd:{Msd}")
-    print(f"As1:{as1*10**4}")
-    print(f"As2:{as2*10**4}")
-    print(f"As:{as0*10**4}")
-    print(f"esd:{esd}")
-    print(f"sigmas:{sigmas/10**6}")
-    print(f"fy:{fy/10**6}")
-    print(f"Asl:{asl*10**4}")
-
-    nbarras = desbitolagem(asl)
-    camadas = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
-    delta_teste(cnom, dt, bitola, camadas, h)
-    selecionadas = [5.0, 6.3, 8.0, 10.0, 12.5, 16.0]
-    dic_barras = {}
-    for i in selecionadas:
-        dic_barras[str(i)] = nbarras[str(i)]
-    print(dic_barras)
-    print(f"Bitola:{str(bitola*10**3)}")
-    print(f"camadas:{camadas}")
