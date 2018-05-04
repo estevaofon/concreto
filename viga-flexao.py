@@ -1,23 +1,25 @@
 import math
 import designer
+import os
 # Entrada de dados
 # dimensoes -> mm
 bw = 150
-h = 650
+h = 600
 d = h*0.9
+#d=400
 
-dt = 6.5 # diametro do estribo
-bitola = 20
+dt = 6.3 # diametro do estribo
+bitola = 12.5
 # classe de agressividade
-caa = 1
-brita = 1
+caa = 2
+brita = 2
 
 # Mk -> kN.m
-Mk = 50
-#Msd = 1.4*Mk
-Msd = 219
+Mk = 58.4
+Msd = 1.4*Mk
+#Msd = 109
 # fck -> MPa
-fck = 30
+fck = 25
 fy = 500
 
 dic_caa = {1: 25, 2: 30, 3: 40, 4: 50}
@@ -145,6 +147,7 @@ def desbitolagem(As):
     bitolas = [5, 6.3, 8, 10, 12.5, 16, 20, 22.0, 25.0, 32, 40]
     bitolas_m = [bmm*10**-3 for bmm in bitolas]
     nbarras = {}
+    nbarras_puro = {}
     area_por_bitola = {5: 0.20, 6.3: 0.31, 8: 0.50, 10: 0.79, 12.5: 1.23, 16: 2.01, 20: 3.14,
     22.0: 3.8, 25: 4.91, 32: 8.04, 40: 12.6}
     for bmm in bitolas_m:
@@ -152,9 +155,10 @@ def desbitolagem(As):
         nbarras[str(bmm*10**3)] = As/area
     for bit in bitolas:
         nbarras[str(bit)] = As/(area_por_bitola[bit]*10**-4)
+        nbarras_puro[str(bit)] = nbarras[str(bit)]
     for key, value in nbarras.items():
         decimal = abs(value - int(value))
-        if decimal <= 0.15 and value >= 1:
+        if decimal <= 0.1 and value >= 1:
             nbarras[key] = math.floor(value)
         else:
             nbarras[key] = math.ceil(value)
@@ -425,7 +429,7 @@ for i in selecionadas:
 print(dic_barras)
 # print(f"Bitola:{str(bitola*10**3)}")
 # print(f"camadas:{camadas}")
-print(f"eh:{[str(round(eh*100,2)) for eh in eh_camadas]}")
+print(f"eh:{[str(round(eh*100,3)) for eh in eh_camadas]}")
 print(f"ev:{ev*100}")
 print(camadas_tuples)
 if h>0.6:
@@ -434,6 +438,7 @@ if h>0.6:
     designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuples, n)
 else:
     designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuples)
+os.system("xdg-open viga.png")
 # ========= Calculo de armadura dupla =============
 armadura_dupla = False
 if armadura_dupla:
