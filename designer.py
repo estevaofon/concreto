@@ -45,7 +45,6 @@ def desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas):
     for c in camadas:
         if c[0] > ev:
             ev = c[0]
-            print(ev)
 
     for camada in camadas:
         desenha_camada(dr, x0, y0, camada[0], camada[1], ft, x0_est, bw)

@@ -1,25 +1,26 @@
+#!/home/estevao/Documentos/projetos-python/concreto/env/bin/python3
 import math
 import designer
 import os
 # Entrada de dados
 # dimensoes -> mm
 bw = 150
-h = 650
-#d = h*0.9
-d=590
+h = 600
+d = h*0.9
+#d=590
 
 dt = 6.3 # diametro do estribo
-bitola = 20
+bitola = 12.5
 # classe de agressividade
-caa = 1
-brita = 1
+caa = 2
+brita = 2
 
 # Mk -> kN.m
 Mk = 58.4
 Msd = 1.4*Mk
-Msd = 219
+#Msd = 219
 # fck -> MPa
-fck = 30
+fck = 25
 fy = 500
 
 dic_caa = {1: 25, 2: 30, 3: 40, 4: 50}
@@ -157,26 +158,30 @@ def desbitolagem(As, bitola):
         nbarras[str(bit)] = As/(area_por_bitola[bit]*10**-4)
     # print(nbarras)
     barras_por_bitola = []
-    value = nbarras[str(bitola*10**3)]
-    def combinacao(a, bitola, nbarras, value):
+    def combinacao(a, bitola, nbarras):
+        value = nbarras[str(bitola*10**3)]
+        #print("value, bitola {} {}".format(value, bitola))
         decimal = abs(value - int(value))
         bitola_str = str(bitola*10**3)
         if decimal <= 0.1 and value >= 1:
-            print("veio aqui")
             nbarras[bitola_str] = math.floor(value)
             barras_por_bitola.append((bitola, math.floor(value)))
         elif decimal > 0.1 and decimal < 0.4:
             n = math.floor(value)-1
-            barras_por_bitola.append((bitola, n))
-            nova_area = As - (math.pi*(bitola**2)/4)*n
+            if n != 0:
+                barras_por_bitola.append((bitola, n))
+            nova_area = a - (math.pi*(bitola**2)/4)*n
             bitola = bitolas[bitolas.index(bitola*10**3)-1]*10**-3
-            value = nova_area/(math.pi*(bitola**2)/4)
-            # print(bitola, value)
-            combinacao(nova_area, bitola, nbarras, value)
+            combinacao(nova_area, bitola, nbarras)
         else:
             nbarras[bitola_str] = math.ceil(value)
             barras_por_bitola.append((bitola, math.ceil(value)))
-    combinacao(As, bitola, nbarras, value)
+        if barras_por_bitola[0][1] == 1:
+            bitola = bitolas[bitolas.index(bitola*10**3)-1]*10**-3
+            barras_por_bitola.pop()
+            combinacao(a, bitola, nbarras)
+
+    combinacao(As, bitola, nbarras)
     for key, value in nbarras.items():
         decimal = abs(value - int(value))
         if decimal <= 0.1 and value >= 1:
