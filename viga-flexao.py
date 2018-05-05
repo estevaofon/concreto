@@ -155,19 +155,28 @@ def desbitolagem(As, bitola):
         nbarras[str(bmm*10**3)] = As/area
     for bit in bitolas:
         nbarras[str(bit)] = As/(area_por_bitola[bit]*10**-4)
-    print(nbarras)
-    value = nbarras[str(bitola*10**3)]
-    decimal = abs(value - int(value))
+    # print(nbarras)
     barras_por_bitola = []
-    if decimal <= 0.1 and value >= 1:
-        nbarras[str(bitola*10**3)] = math.floor(value)
-        barras_por_bitola.append((bitola, math.floor(value)))
-    elif decimal > 0.1 and decimal < 0.5:
-        n = math.floor(value)-1
-        barras_por_bitola.append((bitola, n))
-    else:
-        nbarras[key] = math.ceil(value)
-        barras_por_bitola.append((bitola, math.floor(value)))
+    value = nbarras[str(bitola*10**3)]
+    def combinacao(a, bitola, nbarras, value):
+        decimal = abs(value - int(value))
+        bitola_str = str(bitola*10**3)
+        if decimal <= 0.1 and value >= 1:
+            print("veio aqui")
+            nbarras[bitola_str] = math.floor(value)
+            barras_por_bitola.append((bitola, math.floor(value)))
+        elif decimal > 0.1 and decimal < 0.4:
+            n = math.floor(value)-1
+            barras_por_bitola.append((bitola, n))
+            nova_area = As - (math.pi*(bitola**2)/4)*n
+            bitola = bitolas[bitolas.index(bitola*10**3)-1]*10**-3
+            value = nova_area/(math.pi*(bitola**2)/4)
+            # print(bitola, value)
+            combinacao(nova_area, bitola, nbarras, value)
+        else:
+            nbarras[bitola_str] = math.ceil(value)
+            barras_por_bitola.append((bitola, math.ceil(value)))
+    combinacao(As, bitola, nbarras, value)
     for key, value in nbarras.items():
         decimal = abs(value - int(value))
         if decimal <= 0.1 and value >= 1:
@@ -204,39 +213,47 @@ def bwmin(dbitola, dt, dbrita, nbarras, cnom):
     return bwm
 
 
-def distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom):
+def distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom, barras_por_bitola):
     # maximo de barra por camada
-    bitola_str = str(bitola*10**3)
-    bwm = bwmin(bitola, dt, dbrita, nbarras[bitola_str], cnom)
-    layers = 0
-    camadas = []
-    n = nbarras[bitola_str]
-    barra_max = 0
     camadas_tuple = []
-    if bwm <= bw:
-        camadas.append(n)
-        camadas_tuple.append((bitola, n))
-        return(camadas, camadas_tuple)
-    # numero max de barra por camada
-    while bwm > bw:
-        # reduz uma barra em cada loop
-        n -= 1
-        layers += 1
+    for bpb in barras_por_bitola:
+        #bitola_str = str(bitola*10**3)
+        bitola = bpb[0]
+        n = bpb[1]
+        barra_max = n
+        bitola_str = str(bitola*10**3)
+        #bwm = bwmin(bitola, dt, dbrita, nbarras[bitola_str], cnom)
         bwm = bwmin(bitola, dt, dbrita, n, cnom)
+        layers = 0
+        camadas = []
+        #n = nbarras[bitola_str]
+        barra_max = 0
         if bwm <= bw:
-            barra_max = n
-    nb = nbarras[bitola_str]
-    # distribuicao das barras
-    while nb > 0:
-        if (nb - barra_max) >= 0:
-            camadas.append(barra_max)
-            camadas_tuple.append((bitola, barra_max))
-            nb -= barra_max
+            camadas.append(n)
+            camadas_tuple.append((bitola, n))
+            #return(camadas, camadas_tuple)
+        # numero max de barra por camada
         else:
-            camadas.append(nb)
-            camadas_tuple.append((bitola, nb))
-            nb = 0
-    return(camadas_tuple)
+            while bwm > bw:
+                # reduz uma barra em cada loop
+                n -= 1
+                layers += 1
+                bwm = bwmin(bitola, dt, dbrita, n, cnom)
+                if bwm <= bw:
+                    barra_max = n
+            #nb = nbarras[bitola_str]
+            nb = bpb[1]
+            # distribuicao das barras
+            while nb > 0:
+                if (nb - barra_max) >= 0:
+                    camadas.append(barra_max)
+                    camadas_tuple.append((bitola, barra_max))
+                    nb -= barra_max
+                else:
+                    camadas.append(nb)
+                    camadas_tuple.append((bitola, nb))
+                    nb = 0
+    return camadas_tuple
 
 
 def yc_calc(camadas_tuple):
@@ -427,8 +444,7 @@ dminimo = dminimo*100
 dom = dominio(kx, fck, fy)
 nbarras, barras_por_bitola = desbitolagem(As, bitola)
 print(f"barras por bitola {barras_por_bitola}")
-camadas_tuple = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom)
-print(camadas_tuple)
+camadas_tuple = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom, barras_por_bitola)
 camadas_tuple_mm = [(item[0]*10**3, item[1]) for item in camadas_tuple]
 print(camadas_tuple_mm)
 eh_camadas = eh_por_camada( camadas_tuple, dt, cnom, bw)
