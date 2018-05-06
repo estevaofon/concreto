@@ -7,7 +7,7 @@ import os
 bw = 150
 h = 650
 #d = h*0.9
-d=590
+d = 590
 
 dt = 6.3 # diametro do estribo
 bitola = 20
@@ -16,9 +16,9 @@ caa = 1
 brita = 1
 
 # Mk -> kN.m
-Mk = 58.4
+Mk = 50
 Msd = 1.4*Mk
-Msd = 109
+Msd = 219
 # fck -> MPa
 fck = 30
 fy = 500
@@ -487,5 +487,5 @@ if h>0.6:
     print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))
     designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuple_mm, dt*10**3, n)
 else:
-    designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuple_mm)
+    designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuple_mm, dt*10**3)
 os.system("xdg-open viga.png")

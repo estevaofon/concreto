@@ -99,7 +99,6 @@ def guia_estribo(x0, y0, dr, estribo_pos_bitola):
 
 
 def guia_camadas(x1, y1, dr, agrupada):
-    print(agrupada)
     for pos_bitola in agrupada:
         for pb in pos_bitola:
             x, y = pb[1]
@@ -107,11 +106,6 @@ def guia_camadas(x1, y1, dr, agrupada):
         font = ImageFont.truetype("OpenSans-Regular.ttf", 20)
         dr.text((x1+5, y1-10), str(pos_bitola[0][0]), fill="black",font=font)
         y1 += 50
-    #for pb in estribo_pos_bitola:
-    #    x, y = pb[1]
-    #    dr.line((x, y, 150,250), fill="gray", width=2)
-    #font = ImageFont.truetype("OpenSans-Regular.ttf", 20)
-    #dr.text((x0, y0), str(estribo_pos_bitola[0][0]), fill="black",font=font)
 
 
 def agrupa_bitola(pos_bitola):
@@ -159,15 +153,20 @@ def draw_beam(bw, h, camadas,  bitola_estribo, n_pele=0,):
     img = round_rectangle((bw_est-10, h_est-20), 10, background, "gray")
     im.paste(img, (x0_est+5, y0_est+10))
     estribo_pos_bitola = []
+    x_guia = width/4
+    y_guia = height/4
+    x_guia_camadas = (width*3)/4
+    y_guia = height/4
+    y_guia_camadas = (height*3)/4
     if not n_pele:
         estribo_pos_bitola = desenha_porta_estribo(dr, x0, y0, ft, bw, bitola_estribo)
-        guia_estribo(250, 250, dr, estribo_pos_bitola)
+        guia_estribo(x_guia, y_guia, dr, estribo_pos_bitola)
     else:
         pos_bitola = desenha_pele(dr, x0, y0, ft, bw, h, n_pele, camadas, bitola_estribo)
         guia_estribo(250, 250, dr, pos_bitola)
     pos_bitola = desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas)
     agrupada = agrupa_bitola(pos_bitola)
-    guia_camadas(550, 400, dr, agrupada)
+    guia_camadas(x_guia_camadas, y_guia_camadas, dr, agrupada)
     im.save("viga.png")
 
 
