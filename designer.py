@@ -67,15 +67,31 @@ def desenha_porta_estribo(dr, x0, y0, ft, bw):
 
 
 def desenha_pele(dr, x0, y0, ft, bw, h, n, camadas):
+    bitola = 6.3
     y1 = h+23
     ev = camadas[0][0]
     n += 1
     for camada in camadas:
         y1 -= ev*2
     inc = (y1-y0)/(n)
+    list_collection = []
     for i in range(n):
-        desenha_porta_estribo(dr, x0, y0, ft, bw)
+        list_collection.append(desenha_porta_estribo(dr, x0, y0, ft, bw))
         y0 += inc
+    pos_bitola = [item for sublist in list_collection for item in sublist]
+
+    return pos_bitola
+
+
+def guia_estribo(x0, y0, dr, estribo_pos_bitola):
+    for pb in estribo_pos_bitola:
+        x, y = pb[1]
+        dr.line((x, y, 150,250), fill="gray", width=2)
+    #font = ImageFont.truetype(<font-file>, <font-size>)
+    font = ImageFont.truetype("OpenSans-Regular.ttf", 20)
+    dr.text((x0, y0), str(estribo_pos_bitola[0][0]), fill="black",font=font)
+    # use a bitmap font
+
 
 def draw_beam(bw, h, camadas, n_pele=0):
     """
@@ -111,23 +127,16 @@ def draw_beam(bw, h, camadas, n_pele=0):
     estribo_pos_bitola = []
     if not n_pele:
         estribo_pos_bitola = desenha_porta_estribo(dr, x0, y0, ft, bw)
+        guia_estribo(120, 250, dr, estribo_pos_bitola)
     else:
-        desenha_pele(dr, x0, y0, ft, bw, h, n_pele, camadas)
+        pos_bitola = desenha_pele(dr, x0, y0, ft, bw, h, n_pele, camadas)
+        guia_estribo(120, 250, dr, pos_bitola)
     desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas)
-    for pb in estribo_pos_bitola:
-        x, y = pb[1]
-        dr.line((x, y, 150,250), fill="gray", width=2)
-    #font = ImageFont.truetype(<font-file>, <font-size>)
-    font = ImageFont.truetype("OpenSans-Regular.ttf", 20)
-    dr.text((150, 250),"Sample Text", fill="black",font=font)
-    # use a bitmap font
-    #font = ImageFont.load("arial.pil")
-    #dr.text((10,10), "Hello World", fill="black", font=font)
     im.save("viga.png")
 
 
 if __name__ == "__main__":
     camadas = [(20, 2), (16, 2), (12.5, 2)]
-    draw_beam(150, 750, camadas, 0)
+    draw_beam(150, 750, camadas, 3)
     import os
     os.system("xdg-open viga.png")
