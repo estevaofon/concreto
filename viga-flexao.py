@@ -18,7 +18,7 @@ brita = 1
 # Mk -> kN.m
 Mk = 58.4
 Msd = 1.4*Mk
-Msd = 219
+Msd = 109
 # fck -> MPa
 fck = 30
 fy = 500
@@ -485,7 +485,7 @@ print(f"ev:{ev*100}")
 if h>0.6:
     n, t = as_pele(bw, h, dt, ev, cnom, camadas_tuple)
     print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))
-    designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuple_mm, n)
+    designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuple_mm, dt*10**3, n)
 else:
     designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuple_mm)
 os.system("xdg-open viga.png")

@@ -32,6 +32,7 @@ def desenha_camada(dr, x0, y0, bitola, n_barras, ft, x0_est, bw):
         bs1 = bw-4*cnom-(bitola/5)
     if n_barras == 1:
         dr.ellipse((x0-r, y0-r, x0+r, y0+r), fill="blue")
+        pos_bitola.append((bitola, (x0, y0)))
     else:
         eh = bs1/(n_barras-1)
         for i in range(n_barras):
@@ -59,10 +60,9 @@ def desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas):
 
 
 
-def desenha_porta_estribo(dr, x0, y0, ft, bw):
+def desenha_porta_estribo(dr, x0, y0, ft, bw, bitola):
     x = x0+20
     y = y0+24
-    bitola = 6.3
     r = bitola*ft
     eh = int(bw-65*ft)
     estribo_pos_bitola = []
@@ -74,8 +74,7 @@ def desenha_porta_estribo(dr, x0, y0, ft, bw):
 
 
 
-def desenha_pele(dr, x0, y0, ft, bw, h, n, camadas):
-    bitola = 6.3
+def desenha_pele(dr, x0, y0, ft, bw, h, n, camadas, bitola):
     y1 = h+23
     ev = camadas[0][0]
     n += 1
@@ -84,7 +83,7 @@ def desenha_pele(dr, x0, y0, ft, bw, h, n, camadas):
     inc = (y1-y0)/(n)
     list_collection = []
     for i in range(n):
-        list_collection.append(desenha_porta_estribo(dr, x0, y0, ft, bw))
+        list_collection.append(desenha_porta_estribo(dr, x0, y0, ft, bw, bitola))
         y0 += inc
     pos_bitola = [item for sublist in list_collection for item in sublist]
 
@@ -128,7 +127,7 @@ def agrupa_bitola(pos_bitola):
     return list_final
 
 
-def draw_beam(bw, h, camadas, n_pele=0):
+def draw_beam(bw, h, camadas,  bitola_estribo, n_pele=0,):
     """
     Desenha um viga de armadura simples
     camadas = [(bitola, numero_barras), ...]
@@ -161,10 +160,10 @@ def draw_beam(bw, h, camadas, n_pele=0):
     im.paste(img, (x0_est+5, y0_est+10))
     estribo_pos_bitola = []
     if not n_pele:
-        estribo_pos_bitola = desenha_porta_estribo(dr, x0, y0, ft, bw)
+        estribo_pos_bitola = desenha_porta_estribo(dr, x0, y0, ft, bw, bitola_estribo)
         guia_estribo(250, 250, dr, estribo_pos_bitola)
     else:
-        pos_bitola = desenha_pele(dr, x0, y0, ft, bw, h, n_pele, camadas)
+        pos_bitola = desenha_pele(dr, x0, y0, ft, bw, h, n_pele, camadas, bitola_estribo)
         guia_estribo(250, 250, dr, pos_bitola)
     pos_bitola = desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas)
     agrupada = agrupa_bitola(pos_bitola)
@@ -173,7 +172,8 @@ def draw_beam(bw, h, camadas, n_pele=0):
 
 
 if __name__ == "__main__":
-    camadas = [(20, 2), (20, 2), (16, 2), (12.5, 2)]
-    draw_beam(150, 750, camadas, 3)
+    #camadas = [(20, 2), (20, 2), (16, 2), (12.5, 2)]
+    camadas = [(12.5, 3), (12.5, 1)]
+    draw_beam(150, 750, camadas, 5, 3)
     import os
     os.system("xdg-open viga.png")
