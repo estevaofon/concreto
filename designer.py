@@ -27,6 +27,7 @@ def desenha_camada(dr, x0, y0, bitola, n_barras, ft, x0_est, bw):
     r = bitola*ft
     cnom = x0_est - (x0-20)
     bs1 = bw-4*cnom
+    pos_bitola = []
     if bitola >= 16:
         bs1 = bw-4*cnom-(bitola/5)
     if n_barras == 1:
@@ -35,20 +36,27 @@ def desenha_camada(dr, x0, y0, bitola, n_barras, ft, x0_est, bw):
         eh = bs1/(n_barras-1)
         for i in range(n_barras):
             dr.ellipse((x0-r, y0-r, x0+r, y0+r), fill="blue")
+            pos_bitola.append((bitola, (x0, y0)))
             x0 += eh
+    return pos_bitola
 
 
 def desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas):
     x0 = x0+20
     y0 = h+23
     ev = 0
+    list_collection = []
     for c in camadas:
         if c[0] > ev:
             ev = c[0]
 
     for camada in camadas:
-        desenha_camada(dr, x0, y0, camada[0], camada[1], ft, x0_est, bw)
+        pos_bitola = desenha_camada(dr, x0, y0, camada[0], camada[1], ft, x0_est, bw)
+        list_collection.append(pos_bitola)
         y0 -= ev*2
+    flat_bitola = [item for sublist in list_collection for item in sublist]
+    return flat_bitola
+
 
 
 def desenha_porta_estribo(dr, x0, y0, ft, bw):
@@ -87,10 +95,20 @@ def guia_estribo(x0, y0, dr, estribo_pos_bitola):
     for pb in estribo_pos_bitola:
         x, y = pb[1]
         dr.line((x, y, 150,250), fill="gray", width=2)
-    #font = ImageFont.truetype(<font-file>, <font-size>)
     font = ImageFont.truetype("OpenSans-Regular.ttf", 20)
     dr.text((x0, y0), str(estribo_pos_bitola[0][0]), fill="black",font=font)
-    # use a bitmap font
+
+def agrupa_bitola(pos_bitola):
+    bitolas = set(map(lambda x:x[0], pos_bitola))
+    bitolas = sorted(bitolas)
+    list_final = []
+    for bitola in bitolas:
+        temp = []
+        for item in pos_bitola:
+            if item[0] == bitola:
+                temp.append(item)
+        list_final.append(temp)
+    return list_final
 
 
 def draw_beam(bw, h, camadas, n_pele=0):
@@ -131,7 +149,8 @@ def draw_beam(bw, h, camadas, n_pele=0):
     else:
         pos_bitola = desenha_pele(dr, x0, y0, ft, bw, h, n_pele, camadas)
         guia_estribo(120, 250, dr, pos_bitola)
-    desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas)
+    pos_bitola = desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas)
+    agrupa_bitola(pos_bitola)
     im.save("viga.png")
 
 
