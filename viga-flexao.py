@@ -5,22 +5,22 @@ import os
 # Entrada de dados
 # dimensoes -> mm
 bw = 150
-h = 600
-d = h*0.9
-#d=590
+h = 650
+#d = h*0.9
+d=590
 
 dt = 6.3 # diametro do estribo
-bitola = 12.5
+bitola = 20
 # classe de agressividade
-caa = 2
-brita = 2
+caa = 1
+brita = 1
 
 # Mk -> kN.m
 Mk = 58.4
 Msd = 1.4*Mk
-#Msd = 219
+Msd = 219
 # fck -> MPa
-fck = 25
+fck = 30
 fy = 500
 
 dic_caa = {1: 25, 2: 30, 3: 40, 4: 50}
@@ -156,32 +156,38 @@ def desbitolagem(As, bitola):
         nbarras[str(bmm*10**3)] = As/area
     for bit in bitolas:
         nbarras[str(bit)] = As/(area_por_bitola[bit]*10**-4)
-    # print(nbarras)
     barras_por_bitola = []
-    def combinacao(a, bitola, nbarras):
-        value = nbarras[str(bitola*10**3)]
-        #print("value, bitola {} {}".format(value, bitola))
-        decimal = abs(value - int(value))
+    qt_barras = nbarras[str(bitola*10**3)]
+    def combinacao(a, bitola, qt_barras):
+        decimal = abs(qt_barras - int(qt_barras))
         bitola_str = str(bitola*10**3)
-        if decimal <= 0.1 and value >= 1:
-            nbarras[bitola_str] = math.floor(value)
-            barras_por_bitola.append((bitola, math.floor(value)))
-        elif decimal > 0.1 and decimal < 0.4:
-            n = math.floor(value)-1
-            if n != 0:
+        # print("qtbarras, bitola {} {} {}".format(qt_barras, bitola, decimal))
+        if decimal <= 0.1:
+            barras_por_bitola.append((bitola, math.floor(qt_barras)))
+        elif decimal > 0.1 and decimal < 0.5:
+            n = math.floor(qt_barras)-1
+            if n == 1 or n == 0:
+                bitola = bitolas[bitolas.index(bitola*10**3)-1]*10**-3
+                qt_barras = a/(math.pi*(bitola**2)/4)
+                combinacao(a, bitola, qt_barras)
+            elif n != 0:
                 barras_por_bitola.append((bitola, n))
-            nova_area = a - (math.pi*(bitola**2)/4)*n
-            bitola = bitolas[bitolas.index(bitola*10**3)-1]*10**-3
-            combinacao(nova_area, bitola, nbarras)
+                nova_area = a - (math.pi*(bitola**2)/4)*n
+                bitola = bitolas[bitolas.index(bitola*10**3)-1]*10**-3
+                qt_barras = nova_area/(math.pi*(bitola**2)/4)
+                combinacao(nova_area, bitola, qt_barras)
         else:
-            nbarras[bitola_str] = math.ceil(value)
-            barras_por_bitola.append((bitola, math.ceil(value)))
-        if barras_por_bitola[0][1] == 1:
-            bitola = bitolas[bitolas.index(bitola*10**3)-1]*10**-3
-            barras_por_bitola.pop()
-            combinacao(a, bitola, nbarras)
+            nbarras[bitola_str] = math.ceil(qt_barras)
+            barras_por_bitola.append((bitola, math.ceil(qt_barras)))
+        if barras_por_bitola:
+            if barras_por_bitola[0][1] == 1:
+                bitola = bitolas[bitolas.index(bitola*10**3)-1]*10**-3
+                barras_por_bitola.pop()
+                #qt_barras = a/(math.pi*(bitola**2)/4)
+                qt_barras = a/(area_por_bitola[bitola*10**3]*10**-4)
+                combinacao(a, bitola, qt_barras)
 
-    combinacao(As, bitola, nbarras)
+    combinacao(As, bitola, qt_barras)
     for key, value in nbarras.items():
         decimal = abs(value - int(value))
         if decimal <= 0.1 and value >= 1:

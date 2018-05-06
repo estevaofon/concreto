@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/home/estevao/Documentos/projetos-python/concreto/env/bin/python3
 from PIL import Image, ImageFont, ImageDraw
 
 
@@ -54,11 +54,16 @@ def desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas):
 def desenha_porta_estribo(dr, x0, y0, ft, bw):
     x = x0+20
     y = y0+24
-    r = 6.5*ft
+    bitola = 6.3
+    r = bitola*ft
     eh = int(bw-65*ft)
+    estribo_pos_bitola = []
     for i in range(2):
         dr.ellipse((x-r, y-r, x+r, y+r), fill="purple")
+        estribo_pos_bitola.append((bitola, (x,y)))
         x += eh
+    return estribo_pos_bitola
+
 
 
 def desenha_pele(dr, x0, y0, ft, bw, h, n, camadas):
@@ -103,15 +108,26 @@ def draw_beam(bw, h, camadas, n_pele=0):
     background = (235, 235, 235, 255)
     img = round_rectangle((bw_est-10, h_est-20), 10, background, "gray")
     im.paste(img, (x0_est+5, y0_est+10))
-
+    estribo_pos_bitola = []
     if not n_pele:
-        desenha_porta_estribo(dr, x0, y0, ft, bw)
+        estribo_pos_bitola = desenha_porta_estribo(dr, x0, y0, ft, bw)
     else:
         desenha_pele(dr, x0, y0, ft, bw, h, n_pele, camadas)
     desenha_camadas(dr, x0, y0, ft, x0_est, bw, h, camadas)
+    for pb in estribo_pos_bitola:
+        x, y = pb[1]
+        dr.line((x, y, 150,250), fill="gray", width=2)
+    #font = ImageFont.truetype(<font-file>, <font-size>)
+    font = ImageFont.truetype("OpenSans-Regular.ttf", 20)
+    dr.text((150, 250),"Sample Text", fill="black",font=font)
+    # use a bitmap font
+    #font = ImageFont.load("arial.pil")
+    #dr.text((10,10), "Hello World", fill="black", font=font)
     im.save("viga.png")
 
 
 if __name__ == "__main__":
-    camadas = [(20, 2), (10, 2), (12.5, 2)]
+    camadas = [(20, 2), (16, 2), (12.5, 2)]
     draw_beam(150, 750, camadas, 0)
+    import os
+    os.system("xdg-open viga.png")
