@@ -4,13 +4,13 @@ import designer
 import os
 # Entrada de dados
 # dimensoes -> mm
-bw = 150
-h = 650
-#d = h*0.9
-d = 590
+bw = 200
+h = 600
+d = h*0.9
+#d = 590
 
 dt = 6.3 # diametro do estribo
-bitola = 20
+bitola = 12.5
 # classe de agressividade
 caa = 1
 brita = 1
@@ -18,9 +18,9 @@ brita = 1
 # Mk -> kN.m
 Mk = 50
 Msd = 1.4*Mk
-Msd = 219
+Msd = 87.8
 # fck -> MPa
-fck = 30
+fck = 25
 fy = 500
 
 dic_caa = {1: 25, 2: 30, 3: 40, 4: 50}
@@ -98,7 +98,7 @@ def dmin(Msd, bw, fcd):
     d = math.sqrt(Msd/(bw*fcd*(0.68*kxlim-0.272*kxlim**2)))
     return d
 
-
+# deformacao ultima do concreto
 def ecu_calc(fck):
     fck = fck/10**6  # Pa
     # 20, 50, 90
@@ -303,13 +303,17 @@ def d_test(d1_est, d1_real):
 
 def eh_por_camada(camadas_tuple, dt, cnom, bw):
     eh_list = []
+    a = 0
     for camada in camadas_tuple:
         bitola = camada[0]
         n = camada[1]
+        print("Imprimento o NNNNN", n)
         if n > 1:
             a = (bw-2*cnom-2*dt-n*bitola)/(n-1)
         elif n == 1:
             a = bw - 2*cnom-2*dt-bitola
+        elif n < 1:
+            continue
         eh_list.append(a)
     return eh_list
 
