@@ -4,13 +4,13 @@ import designer
 import os
 # Entrada de dados
 # dimensoes -> mm
-bw = 200
-h = 600
+bw = 90
+h = 120
 d = h*0.9
 #d = 590
 
-dt = 6.3 # diametro do estribo
-bitola = 12.5
+dt = 5 # diametro do estribo
+bitola = 6.3
 # classe de agressividade
 caa = 1
 brita = 1
@@ -18,7 +18,7 @@ brita = 1
 # Mk -> kN.m
 Mk = 50
 Msd = 1.4*Mk
-Msd = 87.8
+Msd = 1.02
 # fck -> MPa
 fck = 25
 fy = 500
@@ -126,7 +126,10 @@ def dominio(kx, fck, fy=500*10**6):
     elif kx >= ecu/(ecu+eyd) and kx <= 1:
         print("Dominio 4")
         n_dominio = 4
+    return n_dominio
 
+
+def teste_tutilidade(fck, kx):
     fck = fck/10**6
     if fck <= 50 and kx <= 0.45:
         print("dutilidade OK")
@@ -134,13 +137,15 @@ def dominio(kx, fck, fy=500*10**6):
         print("dutilidade OK")
     else:
         print("Fora do limite de dutilidade")
+
+
+def teste_armadura_dupla(fck, kx):
         sigmac, lambdac = sigma_lambda_calc(fck)
         kmd = kmd_from_kx(kx, sigmac=sigmac, lambdac=lambdac)
         if armadura_dupla_viavel(kmd):
             print("Armadura é viavel")
         else:
             print("Armadura dupla nao é viavel")
-    return n_dominio
 
 
 def desbitolagem(As, bitola):
@@ -158,44 +163,24 @@ def desbitolagem(As, bitola):
         nbarras[str(bit)] = As/(area_por_bitola[bit]*10**-4)
     barras_por_bitola = []
     qt_barras = nbarras[str(bitola*10**3)]
-    def combinacao(a, bitola, qt_barras):
-        decimal = abs(qt_barras - int(qt_barras))
-        bitola_str = str(bitola*10**3)
-        # print("qtbarras, bitola {} {} {}".format(qt_barras, bitola, decimal))
-        if decimal <= 0.1:
-            barras_por_bitola.append((bitola, math.floor(qt_barras)))
-        elif decimal > 0.1 and decimal < 0.5:
-            n = math.floor(qt_barras)-1
-            if n == 1 or n == 0:
-                bitola = bitolas[bitolas.index(bitola*10**3)-1]*10**-3
-                qt_barras = a/(math.pi*(bitola**2)/4)
-                combinacao(a, bitola, qt_barras)
-            elif n != 0:
-                barras_por_bitola.append((bitola, n))
-                nova_area = a - (math.pi*(bitola**2)/4)*n
-                bitola = bitolas[bitolas.index(bitola*10**3)-1]*10**-3
-                qt_barras = nova_area/(math.pi*(bitola**2)/4)
-                combinacao(nova_area, bitola, qt_barras)
-        else:
-            nbarras[bitola_str] = math.ceil(qt_barras)
-            barras_por_bitola.append((bitola, math.ceil(qt_barras)))
-        if barras_por_bitola:
-            if barras_por_bitola[0][1] == 1:
-                bitola = bitolas[bitolas.index(bitola*10**3)-1]*10**-3
-                barras_por_bitola.pop()
-                #qt_barras = a/(math.pi*(bitola**2)/4)
-                qt_barras = a/(area_por_bitola[bitola*10**3]*10**-4)
-                combinacao(a, bitola, qt_barras)
-
-    combinacao(As, bitola, qt_barras)
-    for key, value in nbarras.items():
-        decimal = abs(value - int(value))
-        if decimal <= 0.1 and value >= 1:
-            nbarras[key] = math.floor(value)
-        elif decimal > 0.1 and decimal < 0.4:
-            nbarras[key] = math.ceil(value)
-        else:
-            nbarras[key] = math.ceil(value)
+    """
+    value = qt_barras
+    decimal = abs(value - int(value))
+    if decimal <= 0.3 and value >= 1:
+        qt_barras = math.floor(value)
+    else:
+        qt_barras = math.ceil(value)
+    """
+    porcentagem = math.floor(qt_barras)*area_por_bitola[bitola*10**3]/(As*10**4)
+    print("Diferenca de porcentagem:")
+    print(f"-------> {porcentagem}")
+    value = qt_barras
+    # Tolerancia de diferença de áreas
+    if porcentagem >= 0.9:
+        qt_barras = math.floor(value)
+    else:
+        qt_barras = math.ceil(value)
+    barras_por_bitola = [(bitola, qt_barras)]
     return nbarras, barras_por_bitola
 
 
@@ -224,7 +209,7 @@ def bwmin(dbitola, dt, dbrita, nbarras, cnom):
     return bwm
 
 
-def distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom, barras_por_bitola):
+def distribuicao_max(bw, bitola, dt, dbrita, cnom, barras_por_bitola):
     # maximo de barra por camada
     camadas_tuple = []
     for bpb in barras_por_bitola:
@@ -459,7 +444,8 @@ dminimo = dminimo*100
 dom = dominio(kx, fck, fy)
 nbarras, barras_por_bitola = desbitolagem(As, bitola)
 print(f"barras por bitola {barras_por_bitola}")
-camadas_tuple = distribuicao_max(bw, nbarras, bitola, dt, dbrita, cnom, barras_por_bitola)
+print(f"nbarras {nbarras}")
+camadas_tuple = distribuicao_max(bw, bitola, dt, dbrita, cnom, barras_por_bitola)
 camadas_tuple_mm = [(item[0]*10**3, item[1]) for item in camadas_tuple]
 print(camadas_tuple_mm)
 eh_camadas = eh_por_camada( camadas_tuple, dt, cnom, bw)
@@ -479,11 +465,11 @@ print("kx: {:.3f}".format(kx))
 print("kz: {:.3f}".format(kz))
 print(f"x1:{x1_cm:.2f}; x2:{x2_cm:.2f}")
 print("As: {:.2f} cm2".format(As_cm))
-selecionadas = [8.0, 10.0, 12.5, 16.0, 20.0, 22.0]
-dic_barras = {}
-for i in selecionadas:
-    dic_barras[str(i)] = nbarras[str(i)]
-print(dic_barras)
+#selecionadas = [8.0, 10.0, 12.5, 16.0, 20.0, 22.0]
+#dic_barras = {}
+#for i in selecionadas:
+#    dic_barras[str(i)] = nbarras[str(i)]
+#print(dic_barras)
 print(f"eh:{[str(round(eh*100,3)) for eh in eh_camadas]}")
 print(f"ev:{ev*100}")
 if h>0.6:
