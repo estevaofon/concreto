@@ -4,23 +4,27 @@ import designer
 import os
 # Entrada de dados
 # dimensoes -> mm
-bw = 90
-h = 120
+bw = 160
+h = 500
 d = h*0.9
 #d = 590
 
 dt = 5 # diametro do estribo
-bitola = 6.3
+bitola = 8
+cobrimento = 25
+d = h - bitola/2 - cobrimento - dt
 # classe de agressividade
-caa = 1
+print(f"d:{d}")
+caa = 2
 brita = 1
 
 # Mk -> kN.m
-Mk = 50
+Mk = 17.54
 Msd = 1.4*Mk
-Msd = 1.02
+Vsk = 32.39
+Vsd = 1.4*Vsk
 # fck -> MPa
-fck = 25
+fck = 30
 fy = 500
 
 dic_caa = {1: 25, 2: 30, 3: 40, 4: 50}
@@ -39,6 +43,8 @@ dbrita = dbrita*10**-3
 dt = dt*10**-3
 bitola = bitola*10**-3
 Msd = Msd*10**3  # N.m
+Vsd = Vsd*10**3  # N
+Vsk = Vsk*10**3  # N
 
 # Calculos
 fcd = fck/1.4
@@ -427,6 +433,95 @@ def sigmas_calc(es, fy):
         sigmas = Es*es
     return sigmas
 
+def VRd2(bw, d, teta, fck):
+    # Valor em N
+    fcd = fck/1.4
+    sigma2 = 1-(fck/10**6)/250
+    print(f'sigma2:{sigma2}')
+    bw = bw*10**3
+    d = d*10**3
+    fcd = fcd/(10**6)
+    return 0.27*sigma2*fcd*bw*d*math.sin(math.radians(90))
+
+def Aswmin(bw, fck):
+    """Area de aço mínima transversal"""
+    # cm2/cm
+    bw = bw*100
+    fck = fck/(10**6)
+    fctm = 0.3 * fck**(2/3)
+    print(f'fctm: {fctm}')
+    return 4*bw*fctm*10**(-4)*10**2
+
+def calculo_VC(Vsd, VRd2, bw, d, fck):
+    """Cálculo do VC através do Vc0
+    Resultado em N
+    """
+    fck = fck/(10**6)
+    fctm = 0.3*fck**(2/3)
+    fctk = 0.7*fctm
+    fctd = fctk*1.4*10**6
+    #bw = bw*100
+    #d = d*100
+    print(f'fctd: {fctd}')
+    print(f'bw: {bw}')
+    print(f'd: {d}')
+    Vc0 = 0.6*fctd*bw*d
+    Vc0 = Vc0_tabela(fck*10**6)*bw*1000*d*1000
+    if Vsd <= Vc0:
+        return Vc0
+    print(f'Vc0: {Vc0}')
+    print(f'Vsd: {Vsd}')
+    print(f'VRd2: {VRd2}')
+    Vc1 = Vc0*((VRd2-Vsd)/(VRd2-Vc0))
+    print(f'Vc1: {Vc1}')
+    return Vc1
+
+def Vc0_tabela(fck):
+    tabela = {20: 0.66, 25: 0.77, 30: 0.87, 35: 0.96, 40: 1.05, 45: 1.14, 50: 1.22,
+    50: 1.38, 60: 1.38, 70: 1.53, 75: 1.6, 80: 1.67, 85: 1.74, 90: 1.81}
+    fck = int(fck/10**6)
+    return tabela[fck]
+
+def vrmin90(aswmin90, d, fyd, teta, Vc):
+    """Valor em N"""
+    aswmin90 = aswmin90 * 10**-2
+    d = d*100
+    fyd = fyd/10**5
+    print(f'd: {d}')
+    print(f'fyd: {fyd}')
+    vmin = (1/1.4)*(0.9*aswmin90*d*fyd*(1/math.tan(math.radians(teta))) + Vc*10**-1)
+    vmin = vmin*9.8
+    print(f'vmin: {vmin}')
+    return vmin
+
+def conferir_aswmin(Vrmin90, Vsk):
+    print(f'vrmin90: {Vrmin90}')
+    print(f'Vsk: {Vsk}')
+    if Vrmin90 > Vsk:
+        print("Área minima pode ser adotada")
+    else:
+        print("Área minima não pode ser adotada")
+
+def calcular_asw90(Vsd, Vc, d, fyd, teta):
+    """Resultado em cm2/cm"""
+    Vsd = Vsd * 0.1
+    #Vc = Vc * 0.1
+    Vsd = 1.4*10200
+    Vc = 4280
+    d = 0.54
+    fyd = fyd/10**5
+    print(f'Vsd: {Vsd}')
+    print(f'Vc: {Vc}')
+    asw90 = ((Vsd - Vc)/(0.9*d*fyd))*math.tan(math.radians(teta))
+    print(f'aswmin90: {asw90}')
+    return asw90
+
+def espaçamento_estribo(asw, bitola):
+    bt5 = [5.61, 4.91, 4.36, 3.93, 3.57, 3.27, 3.02, 2.81, 2.62, 2.45,
+     2.31, 2.18, 2.07, 1.96, 1.87, 1.79, 1.71, 1.64, 1.57, 1.51, 1.45,
+      1.4, 1.35, 1.31]
+    bt63 = [8.91, 7.79, 6.93, 6.23, 5.67]
+
 
 kmd = kmd_calc(Msd, bw, d, fcd)
 sigmac, lambdac = sigma_lambda_calc(fck)
@@ -478,4 +573,16 @@ if h>0.6:
     designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuple_mm, dt*10**3, n)
 else:
     designer.draw_beam(int(bw*10**3), int(h*10**3), camadas_tuple_mm, dt*10**3)
-os.system("xdg-open viga.png")
+# os.system("xdg-open viga.png")
+os.system("viga.png")
+print("ARMADURA TRANSVERSAL".center(30, "-"))
+vrd2 = VRd2(bw, d, 30, fck)
+print(f'VRd2:{vrd2}')
+aswmin = Aswmin(bw, fck)
+print(f'Aswmin:{aswmin}')
+vc = calculo_VC(Vsd, vrd2, bw, d, fck)
+vc0 = Vc0_tabela(fck)
+print(f'vc0:{vc0}')
+vrmin = vrmin90(aswmin, d, fyd, 30, vc)
+conferir_aswmin(vrmin, Vsk)
+calcular_asw90(Vsd, vc, d, fyd, 30)
