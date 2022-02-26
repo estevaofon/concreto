@@ -127,6 +127,7 @@ def draw_beam(bw, h, camadas,  bitola_estribo, n_pele=0,):
     camadas = [(bitola, numero_barras), ...]
     """
     width, height = h+50, h
+    width, height = 400, 500
     im = Image.new('RGBA', (width, height), 'white')
     dr = ImageDraw.Draw(im)
 

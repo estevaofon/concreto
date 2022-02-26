@@ -45,6 +45,7 @@ class Viga():
         self.Msd = self.Msd*10**3  # N.m
         self.Vsd = self.Vsd*10**3  # N
         self.Vsk = self.Vsk*10**3  # N
+        self.d1_est = self.d1_est*10**-3
 
     def sigma_lambda_calc(self):
         # fck <= 50MPa
@@ -65,6 +66,7 @@ class Viga():
         return self.kmd
 
     def kx_calc(self):
+        self.sigmac, self.lambdac = self.sigma_lambda_calc()
         kx = (1 - (1 - 2*self.kmd/self.sigmac)**0.5)/self.lambdac
         self.kx = kx
         return self.kx 
@@ -148,9 +150,9 @@ class Viga():
 
     def teste_armadura_dupla(self):
         fck, kx = self.fck, self.kx
-        sigmac, lambdac = sigma_lambda_calc(fck)
-        kmd = kmd_from_kx(kx, sigmac=sigmac, lambdac=lambdac)
-        if armadura_dupla_viavel(kmd):
+        sigmac, lambdac = self.sigma_lambda_calc()
+        kmd = self.kmd_from_kx()
+        if self.armadura_dupla_viavel():
             print("Armadura é viavel")
         else:
             print("Armadura dupla nao é viavel")
@@ -171,14 +173,6 @@ class Viga():
             nbarras[str(bit)] = As/(area_por_bitola[bit]*10**-4)
         barras_por_bitola = []
         qt_barras = nbarras[str(bitola*10**3)]
-        """
-        value = qt_barras
-        decimal = abs(value - int(value))
-        if decimal <= 0.3 and value >= 1:
-            qt_barras = math.floor(value)
-        else:
-            qt_barras = math.ceil(value)
-        """
         porcentagem = math.floor(qt_barras)*area_por_bitola[bitola*10**3]/(As*10**4)
         print("Diferenca de porcentagem:")
         print(f"-------> {porcentagem}")
@@ -248,7 +242,7 @@ class Viga():
                     # reduz uma barra em cada loop
                     n -= 1
                     layers += 1
-                    bwm = bwmin(bitola, dt, dbrita, n, cnom)
+                    bwm = self.calcular_bwmin(n)
                     if bwm <= bw:
                         barra_max = n
                 #nb = nbarras[bitola_str]
@@ -377,7 +371,8 @@ class Viga():
         Calcula a armadura de pele
         e o espacamento entre elas
         """
-        bw, h, dt, ev, cnom, camadas_tuple = self.bw, self.h, self.dt, self.ev, self.cnom, self.camadas_tuple
+        bw, h, dt, ev, cnom, camadas_tuple = (self.bw, self.h, self.dt,
+        self.ev, self.cnom, self.camadas_tuple)
         n_c = len(camadas_tuple)
         n_ev = n_c - 1
         soma_bitola = 0
@@ -397,7 +392,7 @@ class Viga():
             t = J/(n+1)
             if t > 0.2:
                 print("Nao OK, t > 20cm")
-            if t > d/3:
+            if t > self.d/3:
                 print("Nao OK, t > d/3")
             if t > 15*bitola:
                 print(f"O t {t}")
@@ -454,8 +449,8 @@ class Viga():
         no aco do valor da deformacao
         """
         es, fyk = self.es, self.fyk
-        fyd = fy/1.15
-        aco = int(fy/10**7)
+        fyd = self.fyk/1.15
+        aco = int(self.fyk/10**7)
         eyd_dic = {25: 1.035, 50: 2.070, 60: 2.484}
         eyd = eyd_dic[aco]
         if es >= eyd and es <= 10:
@@ -495,7 +490,6 @@ class Viga():
         50: 1.38, 60: 1.38, 70: 1.53, 75: 1.6, 80: 1.67, 85: 1.74, 90: 1.81}
         fck = int(fck/10**6)
         return tabela[fck]
-
 
     def calculo_VC(self):
         """Cálculo do VC através do Vc0
@@ -570,68 +564,27 @@ class Viga():
         2.31, 2.18, 2.07, 1.96, 1.87, 1.79, 1.71, 1.64, 1.57, 1.51, 1.45,
         1.4, 1.35, 1.31]
         bt63 = [8.91, 7.79, 6.93, 6.23, 5.67]
+    
+    def desenhar_viga(self):
+        camadas_tuple = self.distribuicao_max()
+        camadas_tuple_mm = [(item[0]*10**3, item[1]) for item in camadas_tuple]
+        if self.h>0.6:
+            n, t = self.as_pele()
+            print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))
+            designer.draw_beam(int(self.bw*10**3), int(self.h*10**3), camadas_tuple_mm, self.dt*10**3, n)
+        else:
+            designer.draw_beam(int(self.bw*10**3), int(self.h*10**3), camadas_tuple_mm, self.dt*10**3)
 
-print("VIGA EM OOP".center(60, "-"))
-
-viga = Viga(bw=160, h=500, fck=30, fyk=500, Msk=17.54, Vsk=32.39, cobrimento=25, brita=1, dt=5, bitola=8, teta=30)
-viga.processa_entrada()
-viga.conversoes_de_unidade()
-kmd = viga.kmd_calc()
-print(f"kmd: {kmd}")
-sigmac = viga.sigma_lambda_calc()
-print(f"sigmac: {sigmac}")
-kx = viga.kx_calc()
-print(f"kx: {kx}")
-kz = viga.kz_calc()
-print(f"kz: {kz}")
-As = viga.steel_area()
-print(f"As (cm2): {As* 10**4:.2f}")
-x1, x2 = viga.linha_neutra()
-x1_cm = x1 * 100
-x2_cm = x2 * 100
-dminimo = viga.dmin()
-dminimo = dminimo*100
-dom = viga.dominio()
-viga.desbitolagem()
-print(f"barras por bitola {viga.barras_por_bitola}")
-print(f"nbarras {viga.nbarras}")
-camadas_tuple = viga.distribuicao_max()
-camadas_tuple_mm = [(item[0]*10**3, item[1]) for item in camadas_tuple]
-print(camadas_tuple_mm)
-eh_camadas = viga.eh_por_camada()
-d1 = viga.calcular_d1_real()
-viga.delta_teste()
-d_r = viga.calcular_d_real()
-viga.d_test()
-ev = viga.ev_min()
-ecu = viga.ecu_calc()
-msd1 = viga.msd1_calc()
-print(f"dmin:{dminimo:.2f}")
-print(f"d1_real: {d1*100:.2f} cm")
-print(f"d1_est: {viga.d1_est*100:.2f} cm")
-print(f"d_real: {d_r*100:.2f} cm")
-print(f"kmd: {kmd:.3f}")
-print("kx: {:.3f}".format(kx))
-print("kz: {:.3f}".format(kz))
-print(f"x1:{x1_cm:.2f}; x2:{x2_cm:.2f}")
-print(f"eh:{[str(round(eh*100,3)) for eh in eh_camadas]}")
-print(f"ev:{ev*100}")
-if viga.h>0.6:
-    n, t = viga.as_pele()
-    print("{} As de pele de cada lado, ev: {:.2f}".format(n, t*100))
-    designer.draw_beam(int(viga.bw*10**3), int(viga.h*10**3), camadas_tuple_mm, viga.dt*10**3, n)
-else:
-    designer.draw_beam(int(viga.bw*10**3), int(viga.h*10**3), camadas_tuple_mm, viga.dt*10**3)
-# os.system("xdg-open viga.png")
-os.system("viga.png")
-print("ARMADURA TRANSVERSAL".center(30, "-"))
-vrd2 = viga.calculo_VRd2()
-print(f'VRd2:{vrd2}')
-aswmin = viga.calculo_Aswmin()
-print(f'Aswmin:{aswmin}')
-viga.calculo_VC()
-vc0 = viga.Vc0_tabela()
-print(f'vc0:{vc0}')
-vrmin = viga.calculo_vrmin90()
-viga.conferir_aswmin()
-viga.calcular_asw90()
+    def dimensionar_viga(self):
+        self.processa_entrada()
+        self.conversoes_de_unidade()
+        self.kmd_calc()
+        self.kx_calc()
+        self.kz_calc()
+        self.steel_area()
+        self.dominio()
+        self.desbitolagem()
+        self.distribuicao_max()
+        self.eh_por_camada()
+        self.ev_min()
+        self.desenhar_viga()
