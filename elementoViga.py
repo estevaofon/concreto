@@ -5,13 +5,14 @@ import designer
 import os
 
 class Viga():
-    def __init__(self, bw, h, fck, fyk, Msk, Vsk, cobrimento, brita, dt, bitola, teta, caa=2):
+    def __init__(self, bw, h, fck, fyk, Msk, Vsk, cobrimento, brita, dt, bitola, teta, caa=2, Tsk=0):
         self.bw = bw
         self.h = h
         self.fck = fck
         self.fyk = fyk
         self.Msk = Msk
         self.Vsk = Vsk
+        self.Tsk = Tsk
         self.cobrimento = cobrimento
         self.brita = brita
         self.dt = dt
@@ -26,6 +27,7 @@ class Viga():
         self.d = self.h - self.bitola/2 - self.cobrimento - self.dt
         self.Msd = 1.4*self.Msk
         self.Vsd = 1.4*self.Vsk
+        self.Tsd = 1.4*self.Tsk
         self.fcd = self.fck/1.4
         self.d1_est = self.h - self.d
     
@@ -34,6 +36,7 @@ class Viga():
         self.h = self.h*10**-3
         self.bw = self.bw*10**-3
         self.d = self.d*10**-3
+        self.cobrimento = self.cobrimento*10**-3
         self.fck = self.fck*10**6  # Pa
         self.fcd = self.fcd*10**6  # Pa
         self.fyk = self.fyk*10**6
@@ -45,6 +48,8 @@ class Viga():
         self.Msd = self.Msd*10**3  # N.m
         self.Vsd = self.Vsd*10**3  # N
         self.Vsk = self.Vsk*10**3  # N
+        self.Tsd = self.Tsd*10**3  # N
+        self.Tsk = self.Tsk*10**3  # N
         self.d1_est = self.d1_est*10**-3
 
     def sigma_lambda_calc(self):
@@ -124,29 +129,25 @@ class Viga():
         dic_eyd = {25: 1.035, 50: 2.070, 60: 2.484}
         eyd = dic_eyd[fy]
         if kx < 0:
-            print("Dominio 1")
             n_dominio = 1
         elif kx > 0 and kx <= ecu/(ecu+10):
-            print("Dominio 2")
             n_dominio = 2
         elif kx >= ecu/(ecu+10) and kx < ecu/(ecu + eyd):
-            print("Dominio 3")
             n_dominio = 3
         elif kx >= ecu/(ecu+eyd) and kx <= 1:
-            print("Dominio 4")
             n_dominio = 4
         self.n_dominio = n_dominio
         return n_dominio
 
-    def teste_dutilidade(self):
+    def teste_dutilidade(self) -> str:
         fck, kx = self.fck, self.kx
         fck = fck/10**6
         if fck <= 50 and kx <= 0.45:
-            print("dutilidade OK")
+            return "OK"
         elif fck > 50 and kx <= 0.35:
-            print("dutilidade OK")
+            return "OK"
         else:
-            print("Fora do limite de dutilidade")
+            return "Não OK"
 
     def teste_armadura_dupla(self):
         fck, kx = self.fck, self.kx
@@ -174,8 +175,6 @@ class Viga():
         barras_por_bitola = []
         qt_barras = nbarras[str(bitola*10**3)]
         porcentagem = math.floor(qt_barras)*area_por_bitola[bitola*10**3]/(As*10**4)
-        print("Diferenca de porcentagem:")
-        print(f"-------> {porcentagem}")
         value = qt_barras
         # Tolerancia de diferença de áreas
         if porcentagem >= 0.9:
@@ -309,7 +308,6 @@ class Viga():
         for camada in camadas_tuple:
             bitola = camada[0]
             n = camada[1]
-            print("Imprimento o NNNNN", n)
             if n > 1:
                 a = (bw-2*cnom-2*dt-n*bitola)/(n-1)
             elif n == 1:
@@ -331,7 +329,7 @@ class Viga():
         return 1
 
 
-    def test_min_steelarea(self):
+    def test_min_steelarea(self) -> str:
         bw, h, fck, As = self.bw, self.h, self.fck, self.As
         fck = str(int(fck/(10**6)))
         tx_min = {'20': 0.15, '25': 0.15, '30': 0.15, '35': 0.164, '40': 0.179,
@@ -339,21 +337,17 @@ class Viga():
                 '70': 0.233, '75': 0.239, '80': 0.245, '85': 0.251, '90': 0.256}
         asmin = (tx_min[fck]/100)*bw*h
         if As >= asmin:
-            print("Armadura min OK")
-            return 0
+            return "OK"
         else:
-            print("Menor que a area min")
-            return 1
+            return "Não Ok"
 
 
-    def test_max_steelarea(self):
+    def test_max_steelarea(self) -> str:
         bw, h, fck, As = self.bw, self.h, self.fck, self.As
         if As <= (4/100)*(bw*h):
-            print("Armadura maxima OK")
-            return 0
+            return "OK"
         else:
-            print("Maior que a area maxima")
-            return 1
+            return "Não OK"
 
 
     def barra_int(self, value):
@@ -460,6 +454,8 @@ class Viga():
             sigmas = Es*es
         self.sigmas = sigmas
         return sigmas
+    
+    # Cálculo da Armadura Transveral
 
     def calculo_VRd2(self):
         bw, d, fck = self.bw, self.d, self.fck
@@ -470,7 +466,8 @@ class Viga():
         bw = bw*10**3
         d = d*10**3
         fcd = fcd/(10**6)
-        self.VRd2 =  0.27*sigma2*fcd*bw*d*math.sin(math.radians(90))
+        #self.VRd2 =  0.27*sigma2*fcd*bw*d*math.sin(math.radians(90))
+        self.VRd2 =  0.27*sigma2*fcd*bw*d*math.sin(math.radians(60))
         return 0.27*sigma2*fcd*bw*d*math.sin(math.radians(90))
 
     def calculo_Aswmin(self):
@@ -491,12 +488,23 @@ class Viga():
         fck = int(fck/10**6)
         return tabela[fck]
 
+    def calcular_fctm(self) -> float:
+        """N/m2"""
+        # Convertendo MPa
+        fck = self.fck/(10**6)
+        fctm = 0.3*fck**(2/3)
+        # Convertendo novamente N/m2
+        self.fctm = fctm*10**6
+        return self.fctm
+
+        
     def calculo_VC(self):
         """Cálculo do VC através do Vc0
         Resultado em N
         """
         Vsd, VRd2, bw, d, fck = self.Vsd, self.VRd2, self.bw, self.d, self.fck
         fck = fck/(10**6)
+        print(f'fck que quero veeeeeeeeer {fck}')
         fctm = 0.3*fck**(2/3)
         fctk = 0.7*fctm
         fctd = fctk*1.4*10**6
@@ -533,14 +541,14 @@ class Viga():
         self.vrmin90 = vmin
         return vmin
 
-    def conferir_aswmin(self):
+    def conferir_aswmin(self) -> str:
         Vrmin90, Vsk = self.vrmin90, self.Vsk
         print(f'vrmin90: {Vrmin90}')
         print(f'Vsk: {Vsk}')
         if Vrmin90 > Vsk:
-            print("Área minima pode ser adotada")
+            return "Pode ser adotada"
         else:
-            print("Área minima não pode ser adotada")
+            return "não pode ser adotada"
 
     def calcular_asw90(self):
         Vsd, Vc, d, fyd, teta = self.Vsd, self.Vc, self.d, self.fyd, self.teta
@@ -565,6 +573,94 @@ class Viga():
         1.4, 1.35, 1.31]
         bt63 = [8.91, 7.79, 6.93, 6.23, 5.67]
     
+    # Cálculo da armadura de Torção
+    def calcular_area_da_viga(self):
+        self.area_viga = self.bw*self.h
+        return self.area_viga
+    
+    def calcular_perimetro_da_viga(self):
+        self.u_perimetro_viga = 2*(self.bw+self.h)
+        return self.u_perimetro_viga 
+    
+    def calcular_he(self):
+        """Espessura da parede fina"""
+        self.calcular_area_da_viga()
+        self.calcular_perimetro_da_viga()
+        he1 = self.area_viga/self.u_perimetro_viga
+        print(f"Valor do cobrimento dentro de {self.cobrimento}")
+        self.c1 = (self.bitola/2)+self.dt+self.cobrimento
+        c1 = self.c1
+        he2 = c1*2
+        print(f"Valor de c1 {c1}")
+        he = 0
+        if he1 >= he2:
+            he = he1
+        else:
+            h3 = self.bw - 2*c1
+            print(f"Valor de h3 {h3}")
+            print(f"Valor de he1 {he1}")
+            if he1 <= h3:
+                he = he1
+            else:
+                print("Espessura da casca não atende!")
+        print(f"O valor de he é {he}")
+        self.he = he
+        return self.he
+    
+    def calcular_Ae(self):
+        "Área interna m2"
+        self.Ae = (self.bw - 2*self.c1)*(self.h-2*self.c1)
+        print(f"=======> Valor de Ae {self.Ae*10**4}")
+        return self.Ae
+    
+    def calcular_ue(self):
+        """Perímetro da área equivalente"""
+        self.ue = 2*((self.bw-2*self.c1)+(self.h-self.c1))
+        return self.ue
+    
+    def calcular_TRd2(self, teta=45):
+        "N.m"
+        fck = self.fck
+        # Valor em N
+        fcd = fck/1.4
+        sigma2 = 1-(fck/10**6)/250
+        # fcd = fcd/(10**6)
+        self.TRd2 = 0.5*sigma2*self.fcd*self.Ae*self.he*math.sin(math.radians(teta*2))
+        print(f"=========> TRD2: {self.TRd2/10**3} kN.m")
+        return self.TRd2
+    
+    def verificar_bielas(self) -> None:
+        """Verifica a resistência das bielas
+        de concreto"""
+        v = (self.Vsd/self.VRd2) + self.Tsd/self.TRd2
+        if v <= 1:
+            print("Bielas na torção OK")
+        else:
+            print("Bielas na torção Não OK")
+    
+    # Cálculo das armaduras mínimas para torçao
+
+    def calcular_Asmin_longitudinal(self) -> float:
+        """Unidade: cm2/cm"""
+        self.calcular_fctm()
+        print(f'FCTM: {self.fctm/10**6}')
+        print(f'he: {self.he*100}')
+        print(f'fyk: {self.fyk/10**7}')
+        fy_local = self.fyk/10**7
+        fctm_mpa = self.fctm/10**6
+
+        self.Asmin_longitudinal = 20*(fctm_mpa*0.1)*self.he*100/fy_local
+        print(f"ASMINLONGITUDINAL {self.Asmin_longitudinal}")
+        
+    
+    def calcular_torcao(self):
+        self.calcular_he()
+        self.calcular_Ae()
+        self.calcular_ue()
+        self.calcular_TRd2()
+        self.verificar_bielas()
+        self.calcular_Asmin_longitudinal()
+
     def desenhar_viga(self):
         camadas_tuple = self.distribuicao_max()
         camadas_tuple_mm = [(item[0]*10**3, item[1]) for item in camadas_tuple]
@@ -588,3 +684,10 @@ class Viga():
         self.eh_por_camada()
         self.ev_min()
         self.desenhar_viga()
+        self.calculo_VRd2()
+        self.calculo_Aswmin()
+        self.calculo_VC()
+        self.calculo_vrmin90()
+        self.conferir_aswmin()
+        self.calcular_asw90()
+        self.calcular_torcao()

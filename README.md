@@ -1,8 +1,8 @@
 concreto
 ========
-Dimensionamento de elementos estruturais em concreto.
+Dimensionamento de viga em concreto armado.
 <div>
-<img src="http://www.writeyournote.com/pics/6c02bb0382f4087a936b0a7c943fd69c.png" width="350px">
+<img src="gui.png" width="350px">
 
 TODO
 ----

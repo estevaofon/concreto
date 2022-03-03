@@ -1,4 +1,3 @@
-from cmath import exp
 import tkinter as tk
 from tkinter import W, ttk
 from tkinter import messagebox
@@ -17,11 +16,14 @@ class App():
 
     def calcular_viga(self):
         """
-        cp = consumo per capita
-        n = numero de pessoas
+        Dimensiona a viga
         """
-        msk = float(self.msk_entry.get())
-        vsk = float(self.vsk_entry.get())
+        msk = self.msk_entry.get()
+        msk = float(msk) if msk else 0
+        vsk = self.vsk_entry.get()
+        vsk = float(vsk) if vsk else 0
+        tsk = self.tsk_entry.get()
+        tsk = float(tsk) if tsk else 0
         h = int(self.h_entry.get())
         b = int(self.b_entry.get())
         fck = int(self.Combo_fck.get())
@@ -29,13 +31,39 @@ class App():
         cobrimento = int(self.Combo_cobrimento.get())
         bitola_estribo = float(self.Combo_bitola_estribo.get())
         viga = Viga(bw=b, h=h, fck=fck, fyk=500, Msk=msk, Vsk=vsk,
-        cobrimento=cobrimento, brita=1, dt=bitola_estribo, bitola=bitola, teta=30)
+        cobrimento=cobrimento, brita=1, dt=bitola_estribo, bitola=bitola, teta=30, Tsk=tsk)
+        print(f"Valor de Tsk {tsk}")
         viga.dimensionar_viga()
         viga.desenhar_viga()
-        viga.kx
         self.change_image()
-        dominio = viga.dominio()
-        messagebox.showinfo("Resultado",f"As: {viga.As* 10**4:.2f} cm² Domínio: {dominio} kx: {viga.kx}")
+        self.report_window(viga)
+    
+    def report_window(self, viga):
+        """Emiti relatória da viga"""
+        window = tk.Toplevel()
+        window.geometry("500x500")
+        window.resizable(False, False)
+        window.title("Relatório da viga")
+        frame1 = tk.Frame(window)
+        frame1.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
+        frame2 = tk.Frame(window)
+        frame2.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
+        
+        message_list = [f"As (cm2): {viga.As*10**4:.2f}", f"Domínio: {viga.dominio()}", 
+        f"kmd: {viga.kmd:.2f}", f"kz: {viga.kz:.2f}", f"kx: {viga.kx:.2f}", 
+        f"Armadura mínima: {viga.test_min_steelarea()}", f"Armadura máxima: {viga.test_max_steelarea()}",
+        f"Dutilidade: {viga.teste_dutilidade()}", f"VRd2: {viga.VRd2/10**3:.2f} kN",
+        f"Vc: {viga.Vc/10**3:.2f} kN", f"Uso de Aswmin: {viga.conferir_aswmin()}", f"Aswmin: {viga.Aswmin:.2f} cm2/cm",f"Asw90: {viga.calcular_asw90():.2f} cm2/cm"]
+        for msg in message_list:
+            self.create_new_label(frame1, msg)
+
+
+    def create_new_label(self, parent_frame, msg=""):
+        frame = tk.Frame(parent_frame)
+        frame.pack(fill=tk.BOTH, padx=10, pady=5)
+        frame_label = ttk.Label(frame, text=msg)
+        frame_label.pack(side=tk.LEFT)
+
 
     def create_widgets(self):
         # Cria os frames
