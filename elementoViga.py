@@ -5,6 +5,7 @@ import designer
 import os
 
 class Viga():
+    """Classe Viga"""
     def __init__(self, bw, h, fck, fyk, Msk, Vsk, cobrimento, brita, dt, bitola, teta, caa=2, Tsk=0):
         self.bw = bw
         self.h = h
@@ -24,6 +25,7 @@ class Viga():
         self.teta = teta
 
     def processa_entrada(self):
+        """Pre processamento"""
         self.d = self.h - self.bitola/2 - self.cobrimento - self.dt
         self.Msd = 1.4*self.Msk
         self.Vsd = 1.4*self.Vsk
@@ -32,7 +34,9 @@ class Viga():
         self.d1_est = self.h - self.d
     
     def conversoes_de_unidade(self):
-        # Conversoes para Metro
+        """Conversoes de unidades
+        Padronização para as mesmas unidades
+        """
         self.h = self.h*10**-3
         self.bw = self.bw*10**-3
         self.d = self.d*10**-3
@@ -82,6 +86,7 @@ class Viga():
         return self.kz
     
     def steel_area(self):
+        """m2"""
         As = self.Msd/(self.kz*self.d*self.fyd)
         self.As = As
         return self.As
@@ -458,7 +463,7 @@ class Viga():
     # Cálculo da Armadura Transveral
 
     def calculo_VRd2(self):
-        bw, d, fck = self.bw, self.d, self.fck
+        bw, d, fck, teta = self.bw, self.d, self.fck, self.teta
         # Valor em N
         fcd = fck/1.4
         sigma2 = 1-(fck/10**6)/250
@@ -466,9 +471,8 @@ class Viga():
         bw = bw*10**3
         d = d*10**3
         fcd = fcd/(10**6)
-        #self.VRd2 =  0.27*sigma2*fcd*bw*d*math.sin(math.radians(90))
-        self.VRd2 =  0.27*sigma2*fcd*bw*d*math.sin(math.radians(60))
-        return 0.27*sigma2*fcd*bw*d*math.sin(math.radians(90))
+        self.VRd2 =  0.27*sigma2*fcd*bw*d*math.sin(math.radians(2*self.teta))
+        return self.VRd2
 
     def calculo_Aswmin(self):
         """Area de aço mínima transversal"""
@@ -506,15 +510,16 @@ class Viga():
         fck = fck/(10**6)
         print(f'fck que quero veeeeeeeeer {fck}')
         fctm = 0.3*fck**(2/3)
-        fctk = 0.7*fctm
-        fctd = fctk*1.4*10**6
-        #bw = bw*100
-        #d = d*100
-        print(f'fctd: {fctd}')
+        fctd = 0.7*fctm/1.4
+        print(f"fctd ===========AQUI===============> {fctd}")
+        bw = bw*1000
+        d = d *1000
         print(f'bw: {bw}')
         print(f'd: {d}')
+        print(f'fctd: {fctd}')
         Vc0 = 0.6*fctd*bw*d
-        Vc0 = self.Vc0_tabela()*bw*1000*d*1000
+        print(f"Vc0 ===========AQUI===============> {Vc0}")
+        #Vc0 = self.Vc0_tabela()*bw*1000*d*1000
         if Vsd <= Vc0:
             self.Vc = Vc0
             return Vc0
@@ -553,16 +558,15 @@ class Viga():
     def calcular_asw90(self):
         Vsd, Vc, d, fyd, teta = self.Vsd, self.Vc, self.d, self.fyd, self.teta
         """Resultado em cm2/cm"""
-        Vsd = Vsd * 0.1
-        #Vc = Vc * 0.1
-        Vsd = 1.4*10200
-        Vc = 4280
-        d = 0.54
         fyd = fyd/10**5
+        Vsd = Vsd /10
+        Vc = Vc /10
+
         print(f'Vsd: {Vsd}')
         print(f'Vc: {Vc}')
-        asw90 = ((Vsd - Vc)/(0.9*d*fyd))*math.tan(math.radians(teta))
-        print(f'aswmin90: {asw90}')
+        print(f"=============> teta {self.teta}")
+        asw90 = ((Vsd - Vc)/(0.9*d*fyd))*math.tan(math.radians(30))
+        print(f'asw90 ==================>: {asw90}')
         self.asw90 = asw90
         return asw90
 
@@ -640,28 +644,135 @@ class Viga():
     
     # Cálculo das armaduras mínimas para torçao
 
-    def calcular_Asmin_longitudinal(self) -> float:
+    def calcular_Asmin_longitudinal_torcao(self) -> float:
         """Unidade: cm2/cm"""
         self.calcular_fctm()
-        print(f'FCTM: {self.fctm/10**6}')
-        print(f'he: {self.he*100}')
-        print(f'fyk: {self.fyk/10**7}')
         fy_local = self.fyk/10**7
         fctm_mpa = self.fctm/10**6
 
-        self.Asmin_longitudinal = 20*(fctm_mpa*0.1)*self.he*100/fy_local
-        print(f"ASMINLONGITUDINAL {self.Asmin_longitudinal}")
+        self.Asmin_longitudinal_torcao = 20*(fctm_mpa*0.1)*self.he*100/fy_local
+        print(f"ASMINLONGITUDINAL {self.Asmin_longitudinal_torcao}")
+        return self.Asmin_longitudinal_torcao
+
+    def calcular_Asmin_transveral_torcao(self) -> float:
+        """Unidade: cm2/m"""
+        self.calcular_fctm()
+        fy_local = self.fyk/10**7
+        fctm_mpa = self.fctm/10**6
+
+        self.Asmin_transveral_torcao = 20*(fctm_mpa*0.1)*self.bw*100/fy_local
+        print(f"ASMINTRANSVERAL {self.Asmin_transveral_torcao}")
+        return self.Asmin_transveral_torcao
+
+    def calcular_As_longitudinal_torcao(self) -> float:
+        """cm2/cm"""
+        print("As longitudinal torcao".center(100,"-"))
+        Tsd_local = self.Tsd/10
+        Ae_local = self.Ae*10**4
+        fyd_local = self.fyd/10**7
+        self.As_longitudinal_torcao = Tsd_local/(2*Ae_local*fyd_local*math.tan(math.radians(self.teta)))
+        print(f"As longitudinal de torcao: {self.As_longitudinal_torcao}")
         
+    def calcular_As_transversal_torcao(self) -> float:
+        """cm2/cm"""
+        print("As transversal torcao".center(100,"-"))
+        Tsd_local = self.Tsd/10
+        Ae_local = self.Ae*10**4
+        fyd_local = self.fyd/10**7
+        self.As_transversal_torcao = (Tsd_local/(2*Ae_local*fyd_local))*math.tan(math.radians(self.teta))
+        print(f"As transversal de torcao: {self.As_transversal_torcao}")
     
-    def calcular_torcao(self):
+    def verificar_Asmin_longitudinal_torcao(self):
+        Aslong_cm2_m = self.As_longitudinal_torcao*100
+        if Aslong_cm2_m > self.Asmin_longitudinal_torcao:
+            print("Armadura minima longitudinal de torcao ok")
+        else:
+            print("Armadura minima longitudinal de torcao NÃO OK")
+
+    def verificar_Asmin_transversal_torcao(self) -> None:
+        """Verifica o atendimento da Asmin para armadura 
+        Transversal"""
+        Astrans_cm2_m = self.As_transversal_torcao*100
+        if Astrans_cm2_m > self.Asmin_transveral_torcao:
+            print("Armadura minima transversal de torcao OK")
+        else:
+            print("Armadura minima transversal de torcao NÃO OK")
+
+    
+    def calcular_Aslong_resultante_face_tracionada(self) -> float:
+        """
+        Calcula a Área longitudinal resultante 
+        Longitunal + Torção
+        Resultado em cm2
+        """
+        print(f"bw {self.bw*100}")
+        print(f"2c1 {self.c1*2*100}")
+        As_torcao = (self.bw*100 - 2 * self.c1*100)*self.As_longitudinal_torcao
+        As_long = self.As*10**4
+        self.Aslong_face_tracionada_total = As_torcao + As_long
+        print(f"As torcao longitudinal tracionada resultante ==============================>: {self.Aslong_face_tracionada_total} cm2")
+        return self.Aslong_face_tracionada_total
+    
+    def calcular_Aslong_resultante_face_comprimida(self) -> float:
+        """
+        Calcula a Área longitudinal resultante 
+        Longitunal + Torção
+        Resultado em cm2
+        """
+        As_torcao = (self.bw*100 - 2 * self.c1*100)*self.As_longitudinal_torcao
+        self.Aslong_face_comprimida_total = As_torcao
+        print(f"As torcao longitudinal comprimida resultante ==============================>: {self.Aslong_face_comprimida_total} cm2")
+        return self.Aslong_face_comprimida_total
+
+    def calcular_Aslong_resultante_face_lateral(self) -> float:
+        """
+        Calcula a Área longitudinal resultante 
+        Longitunal + Torção
+        Resultado em cm2
+        """
+        As_torcao = (self.h*100 - 2 * self.c1*100)*self.As_longitudinal_torcao
+        self.Aslong_face_lateral_total = As_torcao
+        print(f"As torcao longitudinal lateral resultante 1 lado ==============================>: {self.Aslong_face_lateral_total} cm2")
+        return self.Aslong_face_lateral_total
+    
+    def calcular_As_transversal_total(self) -> float:
+        """
+        Calculo de estribos resultante
+        Transversal + estribos de torção
+        cm2/cm
+        """
+        if self.conferir_aswmin() == 'Pode ser adotada':
+            asw_puro = self.Aswmin
+            print("Foi o minimo")
+        else:
+            asw_puro = self.asw90
+        asw_puro = asw_puro/2
+        print(f'asw_puro {asw_puro}')
+        print(f'torcao {self.As_transversal_torcao}')
+        aswtotal = asw_puro/100 + self.As_transversal_torcao
+        print(f"As torcao transversal total ==============================>: {aswtotal} cm2/cm")
+
+       
+    def calcular_torcao(self) -> None:
         self.calcular_he()
         self.calcular_Ae()
         self.calcular_ue()
         self.calcular_TRd2()
         self.verificar_bielas()
-        self.calcular_Asmin_longitudinal()
+        self.calcular_Asmin_longitudinal_torcao()
+        self.calcular_Asmin_transveral_torcao()
+        self.calcular_As_longitudinal_torcao()
+        self.calcular_As_transversal_torcao()
+        self.verificar_Asmin_longitudinal_torcao()
+        self.verificar_Asmin_transversal_torcao()
+        self.calcular_Aslong_resultante_face_tracionada()
+        self.calcular_Aslong_resultante_face_comprimida()
+        self.calcular_Aslong_resultante_face_lateral()
+        self.calcular_As_transversal_total()
+        return
 
-    def desenhar_viga(self):
+    def desenhar_viga(self) -> None:
+        """Desenha a viga Resultante"""
         camadas_tuple = self.distribuicao_max()
         camadas_tuple_mm = [(item[0]*10**3, item[1]) for item in camadas_tuple]
         if self.h>0.6:
@@ -670,6 +781,7 @@ class Viga():
             designer.draw_beam(int(self.bw*10**3), int(self.h*10**3), camadas_tuple_mm, self.dt*10**3, n)
         else:
             designer.draw_beam(int(self.bw*10**3), int(self.h*10**3), camadas_tuple_mm, self.dt*10**3)
+    
 
     def dimensionar_viga(self):
         self.processa_entrada()

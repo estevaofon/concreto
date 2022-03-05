@@ -5,6 +5,7 @@ from PIL import ImageTk,Image
 from elementoViga import Viga
 
 class App():
+    """Gui da Viga Calculator"""
     def __init__(self, toplevel):
         self.raiz = toplevel
         self.raiz.title('Calculadora de Viga')
@@ -53,12 +54,13 @@ class App():
         f"kmd: {viga.kmd:.2f}", f"kz: {viga.kz:.2f}", f"kx: {viga.kx:.2f}", 
         f"Armadura mínima: {viga.test_min_steelarea()}", f"Armadura máxima: {viga.test_max_steelarea()}",
         f"Dutilidade: {viga.teste_dutilidade()}", f"VRd2: {viga.VRd2/10**3:.2f} kN",
-        f"Vc: {viga.Vc/10**3:.2f} kN", f"Uso de Aswmin: {viga.conferir_aswmin()}", f"Aswmin: {viga.Aswmin:.2f} cm2/cm",f"Asw90: {viga.calcular_asw90():.2f} cm2/cm"]
+        f"Vc: {viga.Vc/10**3:.2f} kN", f"Uso de Aswmin: {viga.conferir_aswmin()}", f"Aswmin: {viga.Aswmin:.2f} cm2/m",f"Asw90: {viga.calcular_asw90():.2f} cm2/m"]
         for msg in message_list:
             self.create_new_label(frame1, msg)
 
 
     def create_new_label(self, parent_frame, msg=""):
+        """Método para automação da criação dos labels"""
         frame = tk.Frame(parent_frame)
         frame.pack(fill=tk.BOTH, padx=10, pady=5)
         frame_label = ttk.Label(frame, text=msg)
@@ -66,7 +68,7 @@ class App():
 
 
     def create_widgets(self):
-        # Cria os frames
+        """Cria os frames"""
         self.frame_dados = tk.Frame(self.raiz)
         self.frame_dados.pack(fill=tk.BOTH, expand=True, side=tk.LEFT, padx=10, pady=15)
         self.frame1 = tk.Frame(self.raiz)
