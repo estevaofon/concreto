@@ -15,4 +15,4 @@ __pycache__/
 check_rst.py
 .vscode/
 *.png
-!gui.png
+!interface.png
