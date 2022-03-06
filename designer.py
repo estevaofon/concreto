@@ -1,5 +1,5 @@
 #!/home/estevao/Documentos/projetos-python/concreto/env/bin/python3
-from PIL import Image, ImageFont, ImageDraw
+from PIL import Image, ImageFont, ImageDraw # type: ignore
 
 
 def round_corner(radius, fill, background):

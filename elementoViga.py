@@ -57,6 +57,9 @@ class Viga():
         self.d1_est = self.d1_est*10**-3
 
     def sigma_lambda_calc(self):
+        """
+        Calcula o sigmac e o lambda c
+        """
         # fck <= 50MPa
         fck = self.fck
         if fck <= 50*10**6:
@@ -92,6 +95,9 @@ class Viga():
         return self.As
     
     def linha_neutra(self):
+        """
+        Calcula a linha neutra
+        """
         d, lambdac = self.d, self.lambdac
         Msd = self.Msd
         bw = self.bw
@@ -104,7 +110,10 @@ class Viga():
         self.x2 = x2
         return x1, x2
     
-    def dmin(self):
+    def calcular_dmin(self):
+        """
+        Calcula o dmin necessário para viga
+        """
         Msd, bw, fcd = self.Msd, self.bw, self.fcd
         fcd50 = (50*10**6)/1.4
         if fcd <= fcd50:
@@ -154,14 +163,14 @@ class Viga():
         else:
             return "Não OK"
 
-    def teste_armadura_dupla(self):
+    def teste_armadura_dupla(self) -> tuple[int, str]:
         fck, kx = self.fck, self.kx
         sigmac, lambdac = self.sigma_lambda_calc()
         kmd = self.kmd_from_kx()
         if self.armadura_dupla_viavel():
-            print("Armadura é viavel")
+            return (1, "viável")
         else:
-            print("Armadura dupla nao é viavel")
+            return (0, "não viável")
 
     def desbitolagem(self):
         As, bitola = self.As, self.bitola
@@ -299,10 +308,10 @@ class Viga():
         d1_est, d1_real = self.d1_est, self.d1_real
         c = d1_real/d1_est
         if c <= 1.10:
-            print("d1real/dest <= 1.10 OK => {:.3f}".format(c))
+            # print("d1real/dest <= 1.10 OK => {:.3f}".format(c))
             return 1
         else:
-            print("Difereca maior que 1.10 => {:.3f}".format(c))
+            # print("Difereca maior que 1.10 => {:.3f}".format(c))
             return 0
 
 
@@ -324,14 +333,17 @@ class Viga():
         return eh_list
 
 
-    def delta_teste(self):
+    def delta_teste(self) -> tuple[int, str]:
+        """Verifica se a tensão é aplicada
+        no cg"""
         cnom, dt, h, camadas_tuple = self.cnom, self.dt, self.h, self.camadas_tuple
         yc = self.yc_calc()
         if yc <= 0.1*h:
-            print("tensao centrada no cg OK")
+            # print("tensao centrada no cg OK")
+            return (1, "ok")
         else:
-            print("Não passou no delta teste")
-        return 1
+            # print("Não passou no delta teste")
+            return(0, "não ok")
 
 
     def test_min_steelarea(self) -> str:
@@ -467,7 +479,6 @@ class Viga():
         # Valor em N
         fcd = fck/1.4
         sigma2 = 1-(fck/10**6)/250
-        print(f'sigma2:{sigma2}')
         bw = bw*10**3
         d = d*10**3
         fcd = fcd/(10**6)
@@ -481,7 +492,6 @@ class Viga():
         bw = bw*100
         fck = fck/(10**6)
         fctm = 0.3 * fck**(2/3)
-        print(f'fctm: {fctm}')
         self.Aswmin = 4*bw*fctm*10**(-4)*10**2
         return self.Aswmin
 
@@ -672,6 +682,7 @@ class Viga():
         fyd_local = self.fyd/10**7
         self.As_longitudinal_torcao = Tsd_local/(2*Ae_local*fyd_local*math.tan(math.radians(self.teta)))
         print(f"As longitudinal de torcao: {self.As_longitudinal_torcao}")
+        return self.As_longitudinal_torcao
         
     def calcular_As_transversal_torcao(self) -> float:
         """cm2/cm"""
@@ -681,6 +692,7 @@ class Viga():
         fyd_local = self.fyd/10**7
         self.As_transversal_torcao = (Tsd_local/(2*Ae_local*fyd_local))*math.tan(math.radians(self.teta))
         print(f"As transversal de torcao: {self.As_transversal_torcao}")
+        return self.As_transversal_torcao
     
     def verificar_Asmin_longitudinal_torcao(self):
         Aslong_cm2_m = self.As_longitudinal_torcao*100
@@ -751,6 +763,7 @@ class Viga():
         print(f'torcao {self.As_transversal_torcao}')
         aswtotal = asw_puro/100 + self.As_transversal_torcao
         print(f"As torcao transversal total ==============================>: {aswtotal} cm2/cm")
+        return aswtotal
 
        
     def calcular_torcao(self) -> None:
