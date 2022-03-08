@@ -512,9 +512,9 @@ def calcular_asw90(Vsd, Vc, d, fyd, teta):
     fyd = fyd/10**5
     print(f'Vsd: {Vsd}')
     print(f'Vc: {Vc}')
-    asw90 = ((Vsd - Vc)/(0.9*d*fyd))*math.tan(math.radians(teta))
-    print(f'aswmin90: {asw90}')
-    return asw90
+    self.asw90 = ((Vsd - Vc)/(0.9*d*fyd))*math.tan(math.radians(teta))
+    print(f'aswmin90: {self.asw90}')
+    return self.asw90
 
 def espaçamento_estribo(asw, bitola):
     bt5 = [5.61, 4.91, 4.36, 3.93, 3.57, 3.27, 3.02, 2.81, 2.62, 2.45,

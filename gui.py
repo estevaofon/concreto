@@ -54,7 +54,10 @@ class App():
         f"kmd: {viga.kmd:.2f}", f"kz: {viga.kz:.2f}", f"kx: {viga.kx:.2f}", 
         f"Armadura mínima: {viga.test_min_steelarea()}", f"Armadura máxima: {viga.test_max_steelarea()}",
         f"Dutilidade: {viga.teste_dutilidade()}", f"VRd2: {viga.VRd2/10**3:.2f} kN",
-        f"Vc: {viga.Vc/10**3:.2f} kN", f"Uso de Aswmin: {viga.conferir_aswmin()}", f"Aswmin: {viga.Aswmin:.2f} cm2/m",f"Asw90: {viga.calcular_asw90():.2f} cm2/m"]
+        f"Bielas comprimidas: {viga.verificar_bielas_transversal()}",
+        f"Vc: {viga.Vc/10**3:.2f} kN", f"Uso de Aswmin: {viga.conferir_aswmin()}", 
+        f"Aswmin: {viga.Aswmin:.2f} cm2/m",f"Asw90: {viga.calcular_asw90():.2f} cm2/m"]
+
         for msg in message_list:
             self.create_new_label(frame1, msg)
 

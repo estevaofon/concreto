@@ -7,6 +7,8 @@ import os
 class Viga():
     """Classe Viga"""
     def __init__(self, bw, h, fck, fyk, Msk, Vsk, cobrimento, brita, dt, bitola, teta, caa=2, Tsk=0):
+        """Atribui os valores
+        """
         self.bw = bw
         self.h = h
         self.fck = fck
@@ -74,16 +76,19 @@ class Viga():
         return sigmac, lambdac
 
     def kmd_calc(self):
+        """Calcula o kmd"""
         self.kmd = self.Msd/(self.bw*(self.d**2)*self.fcd)
         return self.kmd
 
     def kx_calc(self):
+        """Calcula o kx"""
         self.sigmac, self.lambdac = self.sigma_lambda_calc()
         kx = (1 - (1 - 2*self.kmd/self.sigmac)**0.5)/self.lambdac
         self.kx = kx
         return self.kx 
     
     def kz_calc(self):
+        """Calcula o kz"""
         kz = 1 - 0.5*self.lambdac*self.kx
         self.kz = kz
         return self.kz
@@ -126,6 +131,7 @@ class Viga():
 
     # deformacao ultima do concreto
     def ecu_calc(self):
+        """Calcula o ecu"""
         fck = self.fck
         fck = fck/10**6  # Pa
         # 20, 50, 90
@@ -137,6 +143,9 @@ class Viga():
         return ecu
     
     def dominio(self):
+        """Calcula o dominio
+        TODO: Mudar nome
+        """
         kx, fck, fy = self.kx, self.fck, self.fyk
         ecu = self.ecu_calc()
         fy = int(fy/10**7)
@@ -154,6 +163,7 @@ class Viga():
         return n_dominio
 
     def teste_dutilidade(self) -> str:
+        """Verifica a dutibilidade"""
         fck, kx = self.fck, self.kx
         fck = fck/10**6
         if fck <= 50 and kx <= 0.45:
@@ -164,6 +174,7 @@ class Viga():
             return "Não OK"
 
     def teste_armadura_dupla(self) -> tuple[int, str]:
+        """Testa a viabilidade da armadura dupla"""
         fck, kx = self.fck, self.kx
         sigmac, lambdac = self.sigma_lambda_calc()
         kmd = self.kmd_from_kx()
@@ -173,6 +184,9 @@ class Viga():
             return (0, "não viável")
 
     def desbitolagem(self):
+        """Realiza a desbitolagem
+        A definição de quantas barras utilizar
+        """
         As, bitola = self.As, self.bitola
         # As_cm = As * 10**4
         bitolas = [5, 6.3, 8, 10, 12.5, 16, 20, 22.0, 25.0, 32, 40]
@@ -200,6 +214,7 @@ class Viga():
         return nbarras, barras_por_bitola
 
     def ev_min(self):
+        """Espaço vertical mínimo"""
         bitola, dbrita = self.bitola, self.dbrita
         ev = 20 * 10**-3
         if bitola > ev:
@@ -210,6 +225,7 @@ class Viga():
         return ev
 
     def eh_min(self):
+        """Espaço horizontal mínimo"""
         bitola, dbrita = self.bitola, self.dbrita
         eh = 20 * 10**-3
         if bitola > eh:
@@ -221,6 +237,7 @@ class Viga():
 
 
     def calcular_bwmin(self, numero_barras):
+        """Calcula o bwmin"""
         dbitola, dt, dbrita, cnom = self.bitola, self.dt, self.dbrita, self.cnom
         a = self.eh_min()
         bs = numero_barras*dbitola + (numero_barras-1)*a
@@ -230,7 +247,8 @@ class Viga():
 
 
     def distribuicao_max(self):
-        bw, bitola, dt, dbrita, cnom, barras_por_bitola = self.bw, self.bitola, self.dt, self.dbrita, self.cnom, self.barras_por_bitola
+        bw, bitola, dt, dbrita, cnom, barras_por_bitola = (self.bw, self.bitola, self.dt, 
+        self.dbrita, self.cnom, self.barras_por_bitola)
         # maximo de barra por camada
         camadas_tuple = []
         for bpb in barras_por_bitola:
@@ -360,6 +378,7 @@ class Viga():
 
 
     def test_max_steelarea(self) -> str:
+        """Verifica o limite da máxima área de aço"""
         bw, h, fck, As = self.bw, self.h, self.fck, self.As
         if As <= (4/100)*(bw*h):
             return "OK"
@@ -368,7 +387,10 @@ class Viga():
 
 
     def barra_int(self, value):
-        "Retorna a quantidade de barra com o valor inteiro"
+        """
+        Retorna a quantidade de barra
+        com o valor inteiro
+        """
         decimal = abs(value - int(value))
         if decimal <= 0.15 and value >= 1:
             value = math.floor(value)
@@ -416,6 +438,9 @@ class Viga():
         return(n, t)
 
     def kmd_from_kx(self):
+        """Calcula o valor do kmd
+        a partir do kx
+        """
         kx, sigmac, lambdac = self.kx, self.sigmac, self.lambdac
         kmd =-(sigmac/2)*((kx*lambdac-1)**2-1)
         return kmd
@@ -437,7 +462,7 @@ class Viga():
         return msd2
 
 
-    def armadura_dupla_viavel(self):
+    def armadura_dupla_viavel(self) -> bool:
         """Se for possivel o uso
         de armadura dupla retorna true"""
         kmd = self.kmd
@@ -452,41 +477,27 @@ class Viga():
         esd = ecu*(kxlim-d2/d)/kxlim
         self.esd = esd
         return esd
-
-
-    def sigmas_calc(self):
-        """
-        Funcao para obter a tensao
-        no aco do valor da deformacao
-        """
-        es, fyk = self.es, self.fyk
-        fyd = self.fyk/1.15
-        aco = int(self.fyk/10**7)
-        eyd_dic = {25: 1.035, 50: 2.070, 60: 2.484}
-        eyd = eyd_dic[aco]
-        if es >= eyd and es <= 10:
-            sigmas = fyd
-        elif es >= 0 and es <= eyd:
-            Es = 2.1*10**5
-            sigmas = Es*es
-        self.sigmas = sigmas
-        return sigmas
     
     # Cálculo da Armadura Transveral
-
-    def calculo_VRd2(self):
-        bw, d, fck, teta = self.bw, self.d, self.fck, self.teta
+    def calculo_VRd2(self) -> float:
+        """
+        Calcula o do VRd2
+        Resultado em N
+        """
+        bw, d, fck, fcd, teta = self.bw, self.d, self.fck, self.fcd, self.teta
         # Valor em N
-        fcd = fck/1.4
         sigma2 = 1-(fck/10**6)/250
-        bw = bw*10**3
+        bw = bw*10**3 # converte para mm
         d = d*10**3
         fcd = fcd/(10**6)
-        self.VRd2 =  0.27*sigma2*fcd*bw*d*math.sin(math.radians(2*self.teta))
+        self.VRd2 =  0.27*sigma2*fcd*bw*d*math.sin(math.radians(2*teta))
         return self.VRd2
 
-    def calculo_Aswmin(self):
-        """Area de aço mínima transversal"""
+    def calculo_Aswmin(self) -> float:
+        """
+        Area de aço mínima transversal
+        Resultado em cm2/cm
+        """
         # cm2/cm
         bw, fck = self.bw, self.fck
         bw = bw*100
@@ -512,35 +523,24 @@ class Viga():
         return self.fctm
 
         
-    def calculo_VC(self):
-        """Cálculo do VC através do Vc0
+    def calculo_VC(self) -> float:
+        """
+        Cálculo do VC através do Vc0
         Resultado em N
         """
         Vsd, VRd2, bw, d, fck = self.Vsd, self.VRd2, self.bw, self.d, self.fck
         fck = fck/(10**6)
-        print(f'fck que quero veeeeeeeeer {fck}')
         fctm = 0.3*fck**(2/3)
         fctd = 0.7*fctm/1.4
-        print(f"fctd ===========AQUI===============> {fctd}")
         bw = bw*1000
         d = d *1000
-        print(f'bw: {bw}')
-        print(f'd: {d}')
-        print(f'fctd: {fctd}')
         Vc0 = 0.6*fctd*bw*d
-        print(f"Vc0 ===========AQUI===============> {Vc0}")
-        #Vc0 = self.Vc0_tabela()*bw*1000*d*1000
         if Vsd <= Vc0:
             self.Vc = Vc0
             return Vc0
-        print(f'Vc0: {Vc0}')
-        print(f'Vsd: {Vsd}')
-        print(f'VRd2: {VRd2}')
         Vc1 = Vc0*((VRd2-Vsd)/(VRd2-Vc0))
-        print(f'Vc1: {Vc1}')
         self.Vc = Vc1
         return Vc1
-
     
     def calculo_vrmin90(self):
         """Valor em N"""
@@ -564,19 +564,21 @@ class Viga():
             return "Pode ser adotada"
         else:
             return "não pode ser adotada"
+    
+    def verificar_bielas_transversal(self) -> str:
+        if self.VRd2 > self.Vsd:
+            return "OK"
+        else: 
+            return "Não OK"
 
     def calcular_asw90(self):
-        Vsd, Vc, d, fyd, teta = self.Vsd, self.Vc, self.d, self.fyd, self.teta
         """Resultado em cm2/cm"""
+        Vsd, Vc, d, fyd, teta = self.Vsd, self.Vc, self.d, self.fyd, self.teta
         fyd = fyd/10**5
+        # converte de N em kfg
         Vsd = Vsd /10
         Vc = Vc /10
-
-        print(f'Vsd: {Vsd}')
-        print(f'Vc: {Vc}')
-        print(f"=============> teta {self.teta}")
-        asw90 = ((Vsd - Vc)/(0.9*d*fyd))*math.tan(math.radians(30))
-        print(f'asw90 ==================>: {asw90}')
+        asw90 = ((Vsd - Vc)/(0.9*d*fyd))*math.tan(math.radians(self.teta))
         self.asw90 = asw90
         return asw90
 
@@ -814,5 +816,6 @@ class Viga():
         self.calculo_VC()
         self.calculo_vrmin90()
         self.conferir_aswmin()
+        self.verificar_bielas_transversal()
         self.calcular_asw90()
         self.calcular_torcao()
