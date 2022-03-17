@@ -32,7 +32,8 @@ class App():
         cobrimento = int(self.Combo_cobrimento.get())
         bitola_estribo = float(self.Combo_bitola_estribo.get())
         viga = Viga(bw=b, h=h, fck=fck, fyk=500, Msk=msk, Vsk=vsk,
-        cobrimento=cobrimento, brita=1, dt=bitola_estribo, bitola=bitola, teta=30, Tsk=tsk)
+        cobrimento=cobrimento, brita=1, dt=bitola_estribo, bitola=bitola, 
+        teta=45, Tsk=tsk)
         print(f"Valor de Tsk {tsk}")
         viga.dimensionar_viga()
         viga.desenhar_viga()
@@ -60,6 +61,23 @@ class App():
 
         for msg in message_list:
             self.create_new_label(frame1, msg)
+
+        message_list = ["Torção", f"Bielas comprimidas: {viga.verificar_bielas_torcao()}", 
+        f"TRD2: {(viga.TRd2/10**3):.2f} kN.m",
+        f"As long. min: {viga.Asmin_longitudinal_torcao:.2f} cm2/m", 
+        f"As trans min: {viga.Asmin_transveral_torcao:.2f} cm2/m",
+         f"As long. min: {viga.verificar_Asmin_longitudinal_torcao()}", 
+        f"As trans min: {viga.verificar_Asmin_transversal_torcao()}", 
+        f"As long.: {viga.As_longitudinal_torcao*100:.2f} cm2/m",
+        f"As trans.: {viga.Asmin_transveral_torcao:.2f} cm2/m",
+        f"face inferior As long Total: {viga.Aslong_face_tracionada_total:.2f} cm2",
+        f"face superior As long Total: {viga.Aslong_face_comprimida_total:.2f} cm2",
+        f"face lateral As long Total: {viga.Aslong_face_lateral_total:.2f} cm2",
+        f"As trasnversal Total {viga.aswtotal*100:.2f} cm2/m",
+        ]
+
+        for msg in message_list:
+            self.create_new_label(frame2, msg)
 
 
     def create_new_label(self, parent_frame, msg=""):
