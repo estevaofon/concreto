@@ -68,9 +68,9 @@ class App():
          f"As long. min: {viga.verificar_Asmin_longitudinal_torcao()}", 
         f"As trans min: {viga.verificar_Asmin_transversal_torcao()}", 
         f"As long.: {viga.As_longitudinal_torcao*100:.2f} cm2/m",
-        f"As trans.: {viga.Asmin_transveral_torcao:.2f} cm2/m",
-        f"face inferior As long Total: {viga.Aslong_face_tracionada_total:.2f} cm2",
-        f"face superior As long Total: {viga.Aslong_face_comprimida_total:.2f} cm2",
+        f"As trans.: {viga.As_transversal_torcao*100:.2f} cm2/m",
+        f"face tracionada As long Total: {viga.Aslong_face_tracionada_total:.2f} cm2",
+        f"face comprimida As long Total: {viga.Aslong_face_comprimida_total:.2f} cm2",
         f"face lateral As long Total: {viga.Aslong_face_lateral_total:.2f} cm2",
         f"As trasnversal Total {viga.aswtotal*100:.2f} cm2/m",
         ]
