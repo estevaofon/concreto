@@ -34,7 +34,6 @@ class App():
         viga = Viga(bw=b, h=h, fck=fck, fyk=500, Msk=msk, Vsk=vsk,
         cobrimento=cobrimento, brita=1, dt=bitola_estribo, bitola=bitola, 
         teta=45, Tsk=tsk)
-        print(f"Valor de Tsk {tsk}")
         viga.dimensionar_viga()
         viga.desenhar_viga()
         self.change_image()

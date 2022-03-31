@@ -190,6 +190,8 @@ class Viga():
         A definição de quantas barras utilizar
         """
         As, bitola = self.As, self.bitola
+        if self.Tsk > 0:
+            As = self.Aslong_face_tracionada_total*10**-4
         # As_cm = As * 10**4
         bitolas = [5, 6.3, 8, 10, 12.5, 16, 20, 22.0, 25.0, 32, 40]
         bitolas_m = [bmm*10**-3 for bmm in bitolas]
@@ -365,7 +367,6 @@ class Viga():
             # print("Não passou no delta teste")
             return(0, "não ok")
 
-
     def test_min_steelarea(self) -> str:
         bw, h, fck, As = self.bw, self.h, self.fck, self.As
         fck = str(int(fck/(10**6)))
@@ -376,7 +377,8 @@ class Viga():
         if As >= asmin:
             return "OK"
         else:
-            return "Não Ok"
+            self.As = asmin
+            return "Armadura mínima adotada"
 
 
     def test_max_steelarea(self) -> str:
@@ -783,11 +785,7 @@ class Viga():
         self.kz_calc()
         self.steel_area()
         self.dominio()
-        self.desbitolagem()
-        self.distribuicao_max()
-        self.eh_por_camada()
-        self.ev_min()
-        self.desenhar_viga()
+        
         self.calculo_VRd2()
         self.calculo_Aswmin()
         self.calculo_VC()
@@ -796,3 +794,9 @@ class Viga():
         self.verificar_bielas_transversal()
         self.calcular_asw90()
         self.calcular_torcao()
+
+        self.desbitolagem()
+        self.distribuicao_max()
+        self.eh_por_camada()
+        self.ev_min()
+        self.desenhar_viga()
